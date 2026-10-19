@@ -1,5 +1,5 @@
-// sw.js - Service Worker Nuclear Anti-Caché (Versión 20261019141552)
-const CACHE_NAME = 'uo-pwa-20261019141552';
+// sw.js - Service Worker Nuclear Anti-Caché (Versión 20261019153337)
+const CACHE_NAME = 'uo-pwa-20261019153337';
 
 self.addEventListener('install', (e) => {
   self.skipWaiting(); 
