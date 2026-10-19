@@ -1,0 +1,25 @@
+{
+  "name": "Universidad Online - Rutas Didácticas Pareto 80/20",
+  "short_name": "UO Rutas",
+  "description": "Plataforma Didáctica Inteligente de Masterclasses de Universidad Online",
+  "start_url": "./Mis_Rutas_80_20_UniversidadOnline.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0b0f19",
+  "theme_color": "#0b0f19",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
