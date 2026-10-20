@@ -10,7 +10,14 @@ import datetime
 
 import glob
 
-import json
+import gc
+try:
+    import ujson as json
+except ImportError:
+    try:
+        import orjson as json
+    except ImportError:
+        import json
 
 import os
 
@@ -97,6 +104,8 @@ def ejecutar_query(query: str, params: Tuple = (), db_path: Optional[str] = None
     finally:
 
         conn.close()
+
+        gc.collect()
 
 def init_db(db_path: Optional[str] = None) -> None:
 

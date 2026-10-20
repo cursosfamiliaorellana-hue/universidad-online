@@ -11,7 +11,14 @@ Incluye:
 
 import datetime
 import glob
-import json
+import gc
+try:
+    import ujson as json
+except ImportError:
+    try:
+        import orjson as json
+    except ImportError:
+        import json
 import os
 import re
 import subprocess
@@ -1090,6 +1097,9 @@ def generar_tablero_rutas(ruta_salida: Optional[str] = None, auto_deploy: bool =
 
     if auto_deploy:
         publicar_en_github_pages()
+
+    # Liberación de memoria en tiempo muerto tras compilar y desplegar JSON
+    gc.collect()
 
     return path
 

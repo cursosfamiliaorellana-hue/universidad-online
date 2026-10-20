@@ -16,7 +16,14 @@ Compatible con Python 3.8 y 3.10+ (Windows 8 / 10 / 11).
 
 import asyncio
 
-import json
+import gc
+try:
+    import ujson as json
+except ImportError:
+    try:
+        import orjson as json
+    except ImportError:
+        import json
 
 import os
 
@@ -767,6 +774,9 @@ async def subir_entrega_completa_telegram(
     finally:
 
         await client.disconnect()
+
+        # Liberación de memoria en tiempo muerto post-subida
+        gc.collect()
 
 async def editar_caption_en_telegram(
 

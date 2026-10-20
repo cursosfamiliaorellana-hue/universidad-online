@@ -24,7 +24,14 @@ import glob
 
 import functools
 
-import json
+import gc
+try:
+    import ujson as json
+except ImportError:
+    try:
+        import orjson as json
+    except ImportError:
+        import json
 
 import os
 

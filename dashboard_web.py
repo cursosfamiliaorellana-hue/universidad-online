@@ -8,7 +8,14 @@ Hot-Cancel, Re-grabación (Safe Overwrite), Forzar Subida y Borrado Seguro.
 import asyncio
 from collections import deque
 import datetime
-import json
+import gc
+try:
+    import ujson as json
+except ImportError:
+    try:
+        import orjson as json
+    except ImportError:
+        import json
 import os
 import shutil
 import sys

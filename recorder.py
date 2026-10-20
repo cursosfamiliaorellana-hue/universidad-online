@@ -26,7 +26,14 @@ import datetime
 
 import glob
 
-import json
+import gc
+try:
+    import ujson as json
+except ImportError:
+    try:
+        import orjson as json
+    except ImportError:
+        import json
 
 import os
 
@@ -63,6 +70,92 @@ FFMPEG_EXE = os.path.join(BASE_DIR, "ffmpeg.exe")
 DIR_GRABACIONES = os.path.join(BASE_DIR, "grabaciones")
 
 ARCHIVO_FRENO_MANUAL = os.path.join(BASE_DIR, "DETENER_GRABACION.txt")
+LOG_FFMPEG_FILE = os.path.join(BASE_DIR, "logs_ffmpeg.txt")
+
+_ENCODER_CACHE = None
+
+
+def obtener_startupinfo_y_flags():
+    """Configura banderas de proceso para ejecución 100% invisible en Windows sin suprimir I/O."""
+    si = None
+    flags = 0
+    if sys.platform == "win32":
+        si = subprocess.STARTUPINFO()
+        si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        si.wShowWindow = 0
+        if hasattr(subprocess, "CREATE_NO_WINDOW"):
+            flags = subprocess.CREATE_NO_WINDOW
+    return si, flags
+
+
+def registrar_log_ffmpeg(mensaje: str):
+    """Escribe eventos y errores de FFmpeg en logs_ffmpeg.txt sin bloquear I/O."""
+    try:
+        ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        with open(LOG_FFMPEG_FILE, "a", encoding="utf-8", errors="replace") as f_log:
+            f_log.write(f"[{ts}] {mensaje}\n")
+    except Exception:
+        pass
+
+
+def detectar_encoder_video_optimo(forzar: bool = False):
+    """
+    FASE 1: ACELERACIÓN DE HARDWARE EN FFMPEG CON RED DE SEGURIDAD
+    Evalúa en tiempo real si el sistema soporta encoders por hardware (h264_qsv, h264_amf, h264_nvenc)
+    mediante un dry-run atómico y rápido (1 frame a null).
+
+    INSTRUCCIÓN ANTI-CRASH / PLAN B:
+    Si la aceleración por hardware falla o los controladores de Windows 8 Pro no la soportan,
+    cae instantáneamente al PLAN B garantizado:
+    libx264 por software usando estrictamente '-preset ultrafast' y '-threads 2' para no ahogar la CPU.
+    """
+    global _ENCODER_CACHE
+    if _ENCODER_CACHE and not forzar:
+        return _ENCODER_CACHE
+
+    if not os.path.exists(FFMPEG_EXE):
+        _ENCODER_CACHE = ("libx264", ["-c:v", "libx264", "-preset", "ultrafast", "-threads", "2", "-crf", "26"])
+        return _ENCODER_CACHE
+
+    candidatos_hardware = [
+        ("h264_qsv", ["-c:v", "h264_qsv", "-preset", "veryfast", "-global_quality", "25"]),
+        ("h264_amf", ["-c:v", "h264_amf", "-usage", "ultralowlatency", "-quality", "speed"]),
+        ("h264_nvenc", ["-c:v", "h264_nvenc", "-preset", "p1", "-tune", "ull", "-rc", "constqp", "-qp", "26"]),
+    ]
+
+    si, flags = obtener_startupinfo_y_flags()
+
+    for nombre_enc, flags_enc in candidatos_hardware:
+        try:
+            cmd_test = [
+                FFMPEG_EXE, "-y",
+                "-f", "lavfi", "-i", "color=c=black:s=64x64:d=0.05",
+                "-c:v", nombre_enc,
+                "-frames:v", "1",
+                "-f", "null", "-"
+            ]
+            res = subprocess.run(
+                cmd_test,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                timeout=3,
+                startupinfo=si,
+                creationflags=flags
+            )
+            if res.returncode == 0:
+                print(f"[FFmpeg Hardware] 🚀 Aceleración por Hardware DETECTADA Y ACTIVA: '{nombre_enc}'. Descargando CPU al máximo.")
+                registrar_log_ffmpeg(f"Encoder por Hardware verificado y activo: {nombre_enc}")
+                _ENCODER_CACHE = (nombre_enc, flags_enc)
+                return _ENCODER_CACHE
+        except Exception as e_test:
+            registrar_log_ffmpeg(f"Dry-run hardware {nombre_enc} descartado: {e_test}")
+            continue
+
+    print("[FFmpeg Hardware] 🛡️ [PLAN B ACTIVO] Aceleración por hardware no disponible. Usando software: libx264 (-preset ultrafast, -threads 2).")
+    registrar_log_ffmpeg("Plan B activo: libx264 software ultrafast con 2 threads.")
+    _ENCODER_CACHE = ("libx264", ["-c:v", "libx264", "-preset", "ultrafast", "-threads", "2", "-crf", "26"])
+    return _ENCODER_CACHE
+
 
 SALAS_ZOOM_ACTIVAS = set()
 
@@ -1452,8 +1545,10 @@ async def grabar_stream_hotmart(
     # -------------------------------------------------------------------------
     # FASE 1: DIRECT STREAM COPY (Remuxing ultrarrápido en 2-5 segundos, ~0% CPU)
     # Si Chrome grabó en H.264, copiamos los paquetes de video directamente sin re-codificar.
-    # Se ejecuta en un hilo de fondo (to_thread) para NO bloquear corrutinas concurrentes.
     # -------------------------------------------------------------------------
+    si, flags = obtener_startupinfo_y_flags()
+    log_f = open(LOG_FFMPEG_FILE, "a", encoding="utf-8", errors="replace")
+
     cmd_fast = [
         FFMPEG_EXE, "-y", "-i", ruta_webm,
         "-c:v", "copy",
@@ -1464,8 +1559,10 @@ async def grabar_stream_hotmart(
     exito_remux = False
     print("[Recorder] ⚡ Intentando remuxing ultrarrápido (Direct Stream Copy, 0% CPU)...")
     try:
+        log_f.write(f"\n--- [{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] REMUX FAST: {ruta_webm} ---\n")
+        log_f.flush()
         res_fast = await asyncio.to_thread(
-            subprocess.run, cmd_fast, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=180
+            subprocess.run, cmd_fast, stdout=log_f, stderr=subprocess.STDOUT, timeout=180, startupinfo=si, creationflags=flags
         )
         if res_fast.returncode == 0 and os.path.exists(ruta_salida_mp4) and verificar_integridad_video(ruta_salida_mp4):
             exito_remux = True
@@ -1474,30 +1571,66 @@ async def grabar_stream_hotmart(
         print(f"[Recorder] Aviso en Direct Stream Copy: {e_fast}")
 
     # -------------------------------------------------------------------------
-    # FASE 2: TRANSCODIFICACIÓN SEGURA ULTRAFAST (Sin límite de tiempo)
-    # Si la copia directa no aplicó (ej. fuente VP9), transcodificamos con multithreading.
-    # Timeout=None para que FFmpeg termine a su propio ritmo sin importar la carga de CPU.
+    # FASE 2: TRANSCODIFICACIÓN CON ACELERACIÓN POR HARDWARE Y PLAN B ULTRAFAST
+    # Si la copia directa no aplicó, intenta primero hardware; si falla, cae a Plan B software libx264 (-preset ultrafast, -threads 2).
     # -------------------------------------------------------------------------
     if not exito_remux:
-        print("[Recorder] ⚙️ Iniciando transcodificación ultrafast (sin límite de tiempo, tolerante a CPU alta)...")
-        cmd_transcode = [
-            FFMPEG_EXE, "-y", "-i", ruta_webm,
-            "-c:v", "libx264", "-preset", "ultrafast", "-crf", "23",
-            "-r", "24",
-            "-threads", "0",
-            "-c:a", "aac", "-b:a", "128k",
-            "-movflags", "+faststart",
-            ruta_salida_mp4
-        ]
-        try:
-            res_trans = await asyncio.to_thread(
-                subprocess.run, cmd_transcode, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=None
-            )
-            if res_trans.returncode == 0 and os.path.exists(ruta_salida_mp4) and verificar_integridad_video(ruta_salida_mp4):
-                exito_remux = True
-                print("[Recorder] ✅ Transcodificación ultrafast completada y verificada.")
-        except Exception as e_conv:
-            print(f"\n[Recorder] Error durante transcodificación FFmpeg: {e_conv}")
+        enc_nombre, enc_flags = detectar_encoder_video_optimo()
+
+        # Si hay encoder hardware disponible (ej. h264_qsv), intentarlo primero
+        if enc_nombre != "libx264":
+            print(f"[Recorder] 🚀 Intentando transcodificación por Hardware ({enc_nombre})...")
+            cmd_hw = [
+                FFMPEG_EXE, "-y", "-i", ruta_webm,
+                "-c:v", enc_nombre, "-global_quality", "23",
+                "-r", "24",
+                "-c:a", "aac", "-b:a", "128k",
+                "-movflags", "+faststart",
+                ruta_salida_mp4
+            ]
+            try:
+                log_f.write(f"\n--- [{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] TRANSCODE HW ({enc_nombre}) ---\n")
+                log_f.flush()
+                res_hw = await asyncio.to_thread(
+                    subprocess.run, cmd_hw, stdout=log_f, stderr=subprocess.STDOUT, timeout=None, startupinfo=si, creationflags=flags
+                )
+                if res_hw.returncode == 0 and os.path.exists(ruta_salida_mp4) and verificar_integridad_video(ruta_salida_mp4):
+                    exito_remux = True
+                    print(f"[Recorder] ✅ Transcodificación por hardware ({enc_nombre}) completada exitosamente.")
+            except Exception as e_hw:
+                print(f"[Recorder] Aviso transcodificación hardware: {e_hw}")
+
+        # PLAN B (Software ultrafast libx264 con threads 2) si Direct Stream Copy y Hardware fallaron
+        if not exito_remux:
+            print("[Recorder] 🛡️ [PLAN B ACTIVO] Transcodificando por software: libx264 (-preset ultrafast, -threads 2)...")
+            cmd_transcode = [
+                FFMPEG_EXE, "-y", "-i", ruta_webm,
+                "-c:v", "libx264", "-preset", "ultrafast", "-crf", "23",
+                "-r", "24",
+                "-threads", "2",
+                "-c:a", "aac", "-b:a", "128k",
+                "-movflags", "+faststart",
+                ruta_salida_mp4
+            ]
+            try:
+                log_f.write(f"\n--- [{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] TRANSCODE PLAN B (libx264 threads=2) ---\n")
+                log_f.flush()
+                res_trans = await asyncio.to_thread(
+                    subprocess.run, cmd_transcode, stdout=log_f, stderr=subprocess.STDOUT, timeout=None, startupinfo=si, creationflags=flags
+                )
+                if res_trans.returncode == 0 and os.path.exists(ruta_salida_mp4) and verificar_integridad_video(ruta_salida_mp4):
+                    exito_remux = True
+                    print("[Recorder] ✅ Transcodificación ultrafast Plan B completada y verificada.")
+            except Exception as e_conv:
+                print(f"\n[Recorder] Error durante transcodificación FFmpeg: {e_conv}")
+
+    try:
+        log_f.close()
+    except Exception:
+        pass
+
+    # Liberación de memoria en tiempo muerto post-procesamiento de video
+    gc.collect()
 
     # -------------------------------------------------------------------------
     # SALVAGUARDA ANTI-DESTRUCCIÓN (REGLA DE ORO)
@@ -1722,39 +1855,73 @@ async def grabar_mentoria_zoom_o_voz(
 
                 else:
 
+                    enc_nombre, enc_flags = detectar_encoder_video_optimo()
+
                     cmd = [FFMPEG_EXE, "-y", "-f", "gdigrab", "-framerate", "24", "-i", "desktop"]
 
                     if disp_audio:
-
                         cmd.extend(["-f", "dshow", "-i", f"audio={disp_audio}"])
 
-                    cmd.extend([
-
-                        "-vf", "scale=1280:720",
-
-                        "-c:v", "libx264", "-preset", "ultrafast", "-crf", "26",
-
-                        "-r", "24",
-
-                        "-pix_fmt", "yuv420p", "-movflags", "+faststart",
-
-                    ])
+                    cmd.extend(["-vf", "scale=1280:720"])
+                    cmd.extend(enc_flags)
+                    cmd.extend(["-r", "24", "-pix_fmt", "yuv420p", "-movflags", "+faststart"])
 
                     if disp_audio:
-
                         cmd.extend(["-c:a", "aac", "-b:a", "128k"])
 
                     cmd.append(ruta_salida_mp4)
 
-                si = subprocess.STARTUPINFO() if sys.platform == "win32" else None
+                si, flags = obtener_startupinfo_y_flags()
+                log_mentor_f = open(LOG_FFMPEG_FILE, "a", encoding="utf-8", errors="replace")
+                log_mentor_f.write(f"\n--- [{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] GRABACION INICIADA: {titulo_limpio} ---\n")
+                log_mentor_f.write(f"Comando: {' '.join(cmd)}\n")
+                log_mentor_f.flush()
 
-                if si:
+                proc_ffmpeg = subprocess.Popen(
+                    cmd,
+                    stdin=subprocess.PIPE,
+                    stdout=log_mentor_f,
+                    stderr=subprocess.STDOUT,
+                    startupinfo=si,
+                    creationflags=flags
+                )
 
-                    si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                # VALIDACIÓN DINÁMICA ANTI-CRASH:
+                # Si el encoder por hardware falla al inicializar con el desktop,
+                # detectamos la caída en los primeros 1.5s y activamos el PLAN B (Software libx264 ultrafast threads 2)
+                if not is_voice_chat:
+                    await asyncio.sleep(1.5)
+                    if proc_ffmpeg.poll() is not None:
+                        print(f"\n[Recorder Mentoría] ⚠️ El encoder '{enc_nombre}' falló al arrancar (código {proc_ffmpeg.returncode}).")
+                        print("[Recorder Mentoría] 🛡️ [ACTIVANDO PLAN B] Cayendo a codificación segura libx264 (-preset ultrafast, -threads 2)...")
 
-                    si.wShowWindow = 0
+                        cmd_fallback = [FFMPEG_EXE, "-y", "-f", "gdigrab", "-framerate", "24", "-i", "desktop"]
+                        if disp_audio:
+                            cmd_fallback.extend(["-f", "dshow", "-i", f"audio={disp_audio}"])
+                        cmd_fallback.extend([
+                            "-vf", "scale=1280:720",
+                            "-c:v", "libx264", "-preset", "ultrafast", "-threads", "2", "-crf", "26",
+                            "-r", "24", "-pix_fmt", "yuv420p", "-movflags", "+faststart"
+                        ])
+                        if disp_audio:
+                            cmd_fallback.extend(["-c:a", "aac", "-b:a", "128k"])
+                        cmd_fallback.append(ruta_salida_mp4)
 
-                proc_ffmpeg = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, startupinfo=si)
+                        log_mentor_f.write(f"\n--- [{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] FALLBACK A PLAN B SOFTWARE (libx264 threads=2) ---\n")
+                        log_mentor_f.write(f"Comando: {' '.join(cmd_fallback)}\n")
+                        log_mentor_f.flush()
+
+                        proc_ffmpeg = subprocess.Popen(
+                            cmd_fallback,
+                            stdin=subprocess.PIPE,
+                            stdout=log_mentor_f,
+                            stderr=subprocess.STDOUT,
+                            startupinfo=si,
+                            creationflags=flags
+                        )
+                        await asyncio.sleep(1.0)
+                        if proc_ffmpeg.poll() is None:
+                            print("[Recorder Mentoría] ✅ [PLAN B ACTIVO] Grabación de emergencia por software estabilizada.")
 
                 print("[Recorder Mentoría] 🔴 Grabando mentoría (Autocorte inteligente activado)...")
 
@@ -1913,6 +2080,8 @@ async def grabar_mentoria_zoom_o_voz(
         if zoom_id_room:
 
             SALAS_ZOOM_ACTIVAS.discard(zoom_id_room)
+
+        gc.collect()
 
     return verificar_integridad_video(ruta_salida_mp4)
 
@@ -2449,3 +2618,5 @@ async def grabar_clase_completa(
         prevenir_suspension_sistema(False)
 
         restaurar_consola()
+
+        gc.collect()
