@@ -1,16 +1,16 @@
 # ==============================================================================
 # .gitignore - Bot Universidad Online
-# Protege archivos privados, credenciales, perfiles y binarios pesados (>100MB)
+# Protege binarios pesados (>100MB), videos multimedia y credenciales privadas.
 # ==============================================================================
 
-# Binarios y ejecutables pesados (GitHub rechaza archivos > 100MB como ffmpeg)
+# Binarios y ejecutables pesados (GitHub rechaza archivos > 100MB)
 ffmpeg.exe
 cloudflared.exe
 *.exe
 git/
 libs/
 
-# Carpetas de grabaciones, videos y audios pesados
+# Carpetas de grabaciones, videos y audios pesados (Multimedia no va a Git)
 grabaciones/
 Para_NotebookLM/
 *.mp4
@@ -18,18 +18,26 @@ Para_NotebookLM/
 *.m4a
 *.webm
 *.zip
+*.crdownload
 temp_*/
 
-# Perfil de navegador Chrome y cachés
+# Perfiles de navegador Chrome, vigía y cachés
 perfil_chrome/
+perfil_vigia/
 __pycache__/
 *.pyc
 
-# Base de datos local y sesiones privadas
-clases.db
-*.db
+# Sesiones de Telegram y credenciales privadas
 *.session
 sesion_telegram.session
 sesion_vigia.session
 login_state.json
 config.json
+_backups_db/
+
+# ==============================================================================
+# DISASTER RECOVERY & CEREBRO DE DATOS
+# INCLUIR explícitamente la base de datos central de conocimiento acumulado
+# ==============================================================================
+!clases.db
+*.db.bak
