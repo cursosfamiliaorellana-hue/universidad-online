@@ -1,5 +1,5 @@
-// sw.js - Service Worker Nuclear Anti-Caché (Versión 20261019153337)
-const CACHE_NAME = 'uo-pwa-20261019153337';
+// sw.js - Service Worker LMS Anti-Caché (Versión 20261020072909)
+const CACHE_NAME = 'uo-lms-20261020072909';
 
 self.addEventListener('install', (e) => {
   self.skipWaiting(); 
@@ -15,7 +15,6 @@ self.addEventListener('activate', (e) => {
 });
 
 self.addEventListener('fetch', (e) => {
-  // REGLA ESTRICTA: El archivo HTML principal JAMÁS debe servirse desde el caché.
   if (e.request.mode === 'navigate' || (e.request.headers.get('accept') && e.request.headers.get('accept').includes('text/html'))) {
     e.respondWith(
       fetch(e.request, { cache: 'no-store' })
@@ -23,7 +22,5 @@ self.addEventListener('fetch', (e) => {
     );
     return;
   }
-  
-  // Resto de recursos
   e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
 });

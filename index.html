@@ -7,7 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   
-  <title>Universidad Online - Plataforma Didáctica Pareto 80/20 & Mentores</title>
+  <title>Universidad Online - LMS Interactivo, Flashcards & Mapa Panorámico</title>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0b0f19">
   <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
@@ -16,36 +16,104 @@
     :root {
       --bg: #0b0f19; --card-bg: #151d2e; --card-border: #243048;
       --text: #f8fafc; --text-muted: #94a3b8; --primary: #6366f1;
-      --vital-color: #f59e0b; --comp-color: #38bdf8; --success: #10b981;
+      --vital-color: #f59e0b; --vital-bg: rgba(245, 158, 11, 0.12);
+      --success: #10b981; --success-bg: rgba(16, 185, 129, 0.15);
+      --card-radius: 14px;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     body { background: var(--bg); color: var(--text); padding: 16px; line-height: 1.5; }
+    
+    /* Header & Progress Tracker */
     .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--card-border); padding-bottom: 16px; margin-bottom: 18px; flex-wrap: wrap; gap: 12px; }
-    .badge-pareto { background: linear-gradient(135deg, #f59e0b, #d97706); color: #000; font-weight: 800; font-size: 11px; padding: 4px 10px; border-radius: 999px; }
+    .logo-box h1 { font-size: 22px; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+    .badge-lms { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 999px; }
+    
+    .progress-box { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; padding: 12px 18px; min-width: 280px; flex: 1; max-width: 480px; }
+    .progress-labels { display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; margin-bottom: 6px; color: var(--text-muted); }
+    .progress-bar-bg { background: rgba(255,255,255,0.08); border-radius: 999px; height: 10px; overflow: hidden; }
+    .progress-bar-fill { background: linear-gradient(90deg, #10b981, #6366f1); height: 100%; width: 0%; transition: width 0.4s ease; }
+    
+    /* Mapa Panorámico (Roadmap de 5 Fases) */
+    .panoramic-section { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; padding: 18px; margin-bottom: 22px; }
+    .panoramic-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; }
+    .panoramic-title { font-size: 15px; font-weight: 800; display: flex; align-items: center; gap: 8px; color: #e2e8f0; }
+    .panoramic-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-top: 14px; }
+    .phase-step { background: rgba(0,0,0,0.28); border: 1px solid var(--card-border); border-radius: 12px; padding: 12px; cursor: pointer; transition: all 0.2s; position: relative; }
+    .phase-step:hover, .phase-step.active { border-color: var(--primary); background: rgba(99, 102, 241, 0.12); }
+    .phase-num { font-size: 11px; font-weight: 800; color: #a5b4fc; text-transform: uppercase; margin-bottom: 4px; }
+    .phase-name { font-size: 13px; font-weight: 700; color: var(--text); line-height: 1.3; }
+    .phase-stat { font-size: 11px; color: var(--text-muted); margin-top: 6px; }
+
+    /* Toolbar & Filtros */
     .toolbar { display: flex; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; }
     .search-input, .filter-select { background: var(--card-bg); border: 1px solid var(--card-border); color: var(--text); padding: 11px 14px; border-radius: 10px; font-size: 14px; }
     .search-input { flex: 1; min-width: 220px; }
+    
+    /* Tabs */
     .tabs { display: flex; gap: 8px; border-bottom: 2px solid var(--card-border); margin-bottom: 20px; overflow-x: auto; padding-bottom: 4px; }
     .tab-btn { background: transparent; border: none; color: var(--text-muted); padding: 10px 14px; font-size: 13px; font-weight: 700; cursor: pointer; border-bottom: 3px solid transparent; white-space: nowrap; }
     .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
     .tab-content { display: none; }
     .tab-content.active { display: block; }
-    .section-title { font-size: 16px; font-weight: 800; margin: 18px 0 12px; color: var(--vital-color); }
-    .class-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 16px; }
-    .class-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 14px; padding: 18px; display: flex; flex-direction: column; justify-content: space-between; position: relative; }
-    .class-card.vital { border: 1.5px solid var(--vital-color); }
-    .card-meta { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); margin-bottom: 6px; }
-    .card-title { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
-    .card-transversal { display: inline-block; background: rgba(99, 102, 241, 0.18); color: #a5b4fc; font-size: 11px; padding: 3px 8px; border-radius: 6px; font-weight: 600; margin-bottom: 10px; margin-right: 6px; }
-    .card-mentor { display: inline-block; background: rgba(16, 185, 129, 0.18); color: #34d399; font-size: 11px; padding: 3px 8px; border-radius: 6px; font-weight: 700; margin-bottom: 10px; }
+    .section-title { font-size: 16px; font-weight: 800; margin: 18px 0 12px; color: var(--primary); }
+    
+    /* Tarjetas de Clase */
+    .class-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+    .class-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--card-radius); padding: 18px; display: flex; flex-direction: column; justify-content: space-between; position: relative; transition: transform 0.15s, border-color 0.15s; }
+    .class-card:hover { border-color: rgba(99, 102, 241, 0.5); transform: translateY(-2px); }
+    
+    /* Distintivo de Clase Clave (Reemplaza 'Pertenece al 20%') */
+    .class-card.vital { border: 1.5px solid var(--vital-color); background: linear-gradient(180deg, var(--vital-bg) 0%, var(--card-bg) 40%); }
+    .badge-vital { background: linear-gradient(135deg, #f59e0b, #d97706); color: #000; font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; margin-bottom: 8px; }
+    
+    /* Estado Estudiada (Local Storage) */
+    .class-card.estudiada { border-color: var(--success) !important; background: linear-gradient(180deg, var(--success-bg) 0%, var(--card-bg) 40%); }
+    .badge-estudiada { background: var(--success); color: #000; font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 6px; margin-left: 6px; }
+
+    .card-top-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
+    .card-meta { font-size: 12px; color: var(--text-muted); }
+    .card-title { font-size: 16px; font-weight: 700; margin-bottom: 8px; line-height: 1.35; }
+    
+    /* Tags de Mentor y Transversal */
+    .tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+    .card-transversal { background: rgba(99, 102, 241, 0.18); color: #a5b4fc; font-size: 11px; padding: 3px 8px; border-radius: 6px; font-weight: 600; }
+    .card-mentor { background: rgba(16, 185, 129, 0.18); color: #34d399; font-size: 11px; padding: 3px 8px; border-radius: 6px; font-weight: 700; }
+    .card-date { background: rgba(255, 255, 255, 0.08); color: #cbd5e1; font-size: 11px; padding: 3px 8px; border-radius: 6px; font-weight: 600; }
+    
     .card-motivo { font-size: 13px; color: #cbd5e1; margin-bottom: 14px; background: rgba(0,0,0,0.25); padding: 10px; border-radius: 8px; border-left: 3px solid var(--primary); }
+    
+    /* Acciones & Checklist */
     .card-actions { display: flex; gap: 8px; margin-top: auto; flex-wrap: wrap; }
-    .btn-detail { flex: 1; background: var(--primary); color: #fff; border: none; padding: 9px 12px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; }
-    .btn-card-tg { background: #0088cc; color: #fff; border: none; padding: 9px 12px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; text-decoration: none; }
+    .btn-detail { flex: 1; background: var(--primary); color: #fff; border: none; padding: 9px 12px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; text-align: center; }
+    .btn-card-tg { background: #0088cc; color: #fff; border: none; padding: 9px 12px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
+    .btn-card-audio { background: #059669; color: #fff; border: none; padding: 9px 12px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; text-decoration: none; }
+    
+    .chk-container { display: flex; align-items: center; gap: 8px; margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--card-border); font-size: 12px; color: var(--text-muted); cursor: pointer; user-select: none; }
+    .chk-input { width: 17px; height: 17px; accent-color: var(--success); cursor: pointer; }
+
+    /* Modal de Detalle LMS & Flashcards */
     .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.88); z-index: 999; justify-content: center; align-items: center; padding: 12px; }
     .modal-overlay.open { display: flex; }
-    .modal-card { background: var(--card-bg); border: 1px solid var(--card-border); width: 100%; max-width: 840px; max-height: 92vh; border-radius: 16px; overflow-y: auto; padding: 24px; position: relative; }
+    .modal-card { background: var(--card-bg); border: 1px solid var(--card-border); width: 100%; max-width: 860px; max-height: 92vh; border-radius: 16px; overflow-y: auto; padding: 24px; position: relative; }
     .modal-close { position: absolute; top: 14px; right: 16px; font-size: 26px; color: var(--text-muted); background: none; border: none; cursor: pointer; }
+
+    /* Flashcards Interactivas */
+    .fc-section { background: rgba(0,0,0,0.3); border: 1px solid var(--card-border); border-radius: 14px; padding: 18px; margin: 20px 0; }
+    .fc-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .fc-counter { font-size: 12px; font-weight: 700; color: #a5b4fc; }
+    .flashcard-wrapper { perspective: 1000px; min-height: 180px; margin-bottom: 12px; }
+    .flashcard-inner { width: 100%; min-height: 180px; border-radius: 12px; border: 1.5px solid #4338ca; background: #1e1b4b; padding: 20px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; cursor: pointer; transition: transform 0.3s; user-select: none; }
+    .flashcard-inner.flipped { background: #064e3b; border-color: #059669; }
+    .fc-badge { font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 999px; margin-bottom: 10px; background: rgba(255,255,255,0.12); color: #fff; }
+    .fc-prompt { font-size: 15px; font-weight: 700; line-height: 1.4; color: #f8fafc; }
+    .fc-answer { font-size: 14px; line-height: 1.4; color: #a7f3d0; margin-top: 10px; display: none; }
+    .flashcard-inner.flipped .fc-answer { display: block; }
+    .flashcard-inner.flipped .fc-hint { display: none; }
+    .fc-hint { font-size: 11px; color: #94a3b8; margin-top: 10px; }
+    .fc-controls { display: flex; justify-content: center; gap: 10px; }
+    .fc-btn { background: rgba(255,255,255,0.08); color: var(--text); border: 1px solid var(--card-border); padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; }
+    .fc-btn:hover { background: var(--primary); }
+
     .infografia-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin: 14px 0; }
     .info-block { background: rgba(255,255,255,0.03); border: 1px solid var(--card-border); border-radius: 10px; padding: 14px; text-align: center; }
     .quiz-box { background: rgba(0,0,0,0.25); border-radius: 10px; padding: 14px; margin: 12px 0; border: 1px solid var(--card-border); }
@@ -58,20 +126,76 @@
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=20261019153337').then(reg => reg.update());
+        navigator.serviceWorker.register('./sw.js?v=20261020072909').then(reg => reg.update());
       });
     }
   </script>
 
+  <!-- Header con Progreso de Estudio -->
   <div class="header">
-    <div>
-      <h1>🎓 Universidad Online <span class="badge-pareto">Pareto 80/20 + Mentores</span></h1>
-      <p style="color:var(--text-muted); font-size:13px;">Clases y Mentorías: 5 • Cápsulas y Noticias: 0 • Actualizado: 19/10/2026 15:33</p>
+    <div class="logo-box">
+      <h1>🎓 Universidad Online <span class="badge-lms">LMS Interactivo</span></h1>
+      <p style="color:var(--text-muted); font-size:13px; margin-top:4px;">
+        5 Masterclasses & Mentorías • 0 Cápsulas IA • Actualizado: 20/10/2026 07:29
+      </p>
+    </div>
+    
+    <div class="progress-box">
+      <div class="progress-labels">
+        <span>🎯 TU PROGRESO DE ESTUDIO</span>
+        <span id="progressText">0 / 5 (0%)</span>
+      </div>
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" id="progressBarFill"></div>
+      </div>
     </div>
   </div>
 
+  <!-- MAPA PANORÁMICO DE ESTUDIO (Ruta Guiada de 5 Fases) -->
+  <div class="panoramic-section">
+    <div class="panoramic-header" onclick="togglePanoramic()">
+      <div class="panoramic-title">
+        <span>🗺️ MAPA PANORÁMICO DE ESTUDIO (Ruta Guiada Paso a Paso)</span>
+      </div>
+      <span style="font-size:12px; color:var(--text-muted);" id="panoramicToggleIcon">▼ Desplegar</span>
+    </div>
+    <div class="panoramic-grid" id="panoramicGrid">
+      <div class="phase-step active" onclick="filtrarPorFase(0, this)">
+        <div class="phase-num">Vista Global</div>
+        <div class="phase-name">🌟 Todo el Ecosistema</div>
+        <div class="phase-stat" id="stat-fase-0">5 Clases</div>
+      </div>
+      <div class="phase-step" onclick="filtrarPorFase(1, this)">
+        <div class="phase-num">Fase 1</div>
+        <div class="phase-name">🧭 Fundamentos & Mindset</div>
+        <div class="phase-stat" id="stat-fase-1">Bases del Negocio</div>
+      </div>
+      <div class="phase-step" onclick="filtrarPorFase(2, this)">
+        <div class="phase-num">Fase 2</div>
+        <div class="phase-name">🛠️ Creación & Oferta</div>
+        <div class="phase-stat" id="stat-fase-2">Cursos & Empaquetado</div>
+      </div>
+      <div class="phase-step" onclick="filtrarPorFase(3, this)">
+        <div class="phase-num">Fase 3</div>
+        <div class="phase-name">📢 Comercialización & Ventas</div>
+        <div class="phase-stat" id="stat-fase-3">Cierre & Embudos</div>
+      </div>
+      <div class="phase-step" onclick="filtrarPorFase(4, this)">
+        <div class="phase-num">Fase 4</div>
+        <div class="phase-name">🚀 Lanzamientos & Escala</div>
+        <div class="phase-stat" id="stat-fase-4">Tráfico & Facturación</div>
+      </div>
+      <div class="phase-step" onclick="filtrarPorFase(5, this)">
+        <div class="phase-num">Fase 5</div>
+        <div class="phase-name">🎙️ Mentorías & Playbooks</div>
+        <div class="phase-stat" id="stat-fase-5">Tácticas Avanzadas</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Buscador y Filtros -->
   <div class="toolbar">
-    <input type="text" id="searchInput" class="search-input" placeholder="🔍 Buscar por tema, mentor, palabra clave..." oninput="filtrarTodo()">
+    <input type="text" id="searchInput" class="search-input" placeholder="🔍 Buscar por tema, mentor, concepto clave..." oninput="filtrarTodo()">
     <select id="filterMentor" class="filter-select" onchange="filtrarTodo()">
       <option value="todos">👥 Todos los Mentores</option>
       <option value="Kike Cadena">🎙️ Mentor: Kike Cadena</option>
@@ -86,48 +210,51 @@
       <option value="Inteligencia Artificial">Inteligencia Artificial</option>
       <option value="Marketing Digital">Marketing Digital</option>
       <option value="Ventas">Ventas y Comercialización</option>
+      <option value="Playbooks">Playbooks & Guías</option>
     </select>
   </div>
 
+  <!-- Pestañas Principales -->
   <div class="tabs">
     <button class="tab-btn active" onclick="switchTab('tab-recientes', this)">🔥 Recientemente Subidas</button>
     <button class="tab-btn" onclick="switchTab('tab-mentorias', this)">🎙️ Mentorías Grabadas</button>
     <button class="tab-btn" onclick="switchTab('tab-capsulas', this)">💡 Tips & Cápsulas de Mentores</button>
     <button class="tab-btn" onclick="switchTab('tab-noticias', this)">📰 Noticias & Avisos</button>
-    <button class="tab-btn" onclick="switchTab('tab-creacion', this)">✏️ Creación 80/20</button>
-    <button class="tab-btn" onclick="switchTab('tab-comercializacion', this)">📈 Ventas 80/20</button>
+    <button class="tab-btn" onclick="switchTab('tab-creacion', this)">✏️ Creación</button>
+    <button class="tab-btn" onclick="switchTab('tab-comercializacion', this)">📈 Ventas</button>
   </div>
 
   <div id="tab-recientes" class="tab-content active">
-    <div class="section-title">🔥 ÚLTIMAS SESIONES GRABADAS (Masterclasses y Mentorías)</div>
+    <div class="section-title">🔥 ÚLTIMAS SESIONES GRABADAS</div>
     <div class="class-grid" id="grid-recientes"></div>
   </div>
 
   <div id="tab-mentorias" class="tab-content">
-    <div class="section-title">🎙️ MENTORÍAS EN VIVO GRABADAS (Filtra por Mentor arriba)</div>
+    <div class="section-title">🎙️ MENTORÍAS EN VIVO Y SESIONES ESTRATÉGICAS</div>
     <div class="class-grid" id="grid-mentorias"></div>
   </div>
 
   <div id="tab-capsulas" class="tab-content">
-    <div class="section-title">💡 CÁPSULAS EDUCATIVAS Y TIPS DE GRUPOS DE MENTORES</div>
+    <div class="section-title">💡 CÁPSULAS EDUCATIVAS Y FLASHCARDS DE MENTORES</div>
     <div class="class-grid" id="grid-capsulas"></div>
   </div>
 
   <div id="tab-noticias" class="tab-content">
-    <div class="section-title">📰 NOTICIAS, CAMBIOS DE HORARIO Y AVISOS DE MENTORES</div>
+    <div class="section-title">📰 NOTICIAS, CAMBIOS DE HORARIO Y AVISOS</div>
     <div class="class-grid" id="grid-noticias"></div>
   </div>
 
   <div id="tab-creacion" class="tab-content">
-    <div class="section-title">🔥 20% VITAL - CREACIÓN DE PRODUCTOS</div>
+    <div class="section-title">✏️ CREACIÓN DE PRODUCTOS Y ESTRUCTURA DIDÁCTICA</div>
     <div class="class-grid" id="grid-creacion"></div>
   </div>
 
   <div id="tab-comercializacion" class="tab-content">
-    <div class="section-title">🔥 20% VITAL - COMERCIALIZACIÓN Y VENTAS</div>
+    <div class="section-title">📈 COMERCIALIZACIÓN, TRÁFICO Y CIERRE DE VENTAS</div>
     <div class="class-grid" id="grid-comercializacion"></div>
   </div>
 
+  <!-- Modal Detallado con Flashcards y Estudio -->
   <div class="modal-overlay" id="modalDetail" onclick="if(event.target===this) cerrarModal()">
     <div class="modal-card">
       <button class="modal-close" onclick="cerrarModal()">&times;</button>
@@ -136,8 +263,84 @@
   </div>
 
   <script>
-    const CLASES = [{"id": "marca personal con regina righi", "titulo": "Marca Personal con Regina Righi", "fecha_iso": "2026-10-18T12:30:00-04:00", "fecha": "2026-10-18", "transversal": "Marca Personal", "es_mentoria": false, "mentor": "General", "nivel": 3, "notebook_url": "https://notebooklm.google.com/", "podcast_rel": "", "creacion": {"importancia": 80, "es_vital": true, "motivo": "Estructuración y aplicación práctica."}, "comercializacion": {"importancia": 90, "es_vital": true, "motivo": "Adquisición de clientes y conversión."}, "resumen": "Sesión grabada de Universidad Online.", "infografia": [], "checklist": [], "quiz": [], "mermaid": "", "markdown": "# 🎓 Marca Personal con Regina Righi\n\nClase grabada y procesada.", "telegram_url": "", "telegram_app_url": "", "telegram_web_url": ""}, {"id": "prospeccion con hunter game con jef riveros", "titulo": "Prospección con Hunter Game con Jef Riveros", "fecha_iso": "2026-10-18T15:00:00-04:00", "fecha": "2026-10-18", "transversal": "General", "es_mentoria": false, "mentor": "General", "nivel": 1, "notebook_url": "https://notebooklm.google.com/", "podcast_rel": "", "creacion": {"importancia": 75, "es_vital": false, "motivo": "Estructuración y aplicación práctica."}, "comercializacion": {"importancia": 75, "es_vital": false, "motivo": "Adquisición de clientes y conversión."}, "resumen": "Sesión grabada de Universidad Online.", "infografia": [], "checklist": [], "quiz": [], "mermaid": "", "markdown": "# 🎓 Prospección con Hunter Game con Jef Riveros\n\nClase grabada y procesada.", "telegram_url": "", "telegram_app_url": "", "telegram_web_url": ""}, {"id": "crea con chatgpt y canva por kike cadena", "titulo": "Crea con ChatGPT y Canva por Kike Cadena", "fecha_iso": "2026-10-18T19:00:00-04:00", "fecha": "2026-10-18", "transversal": "General", "es_mentoria": false, "mentor": "General", "nivel": 1, "notebook_url": "https://notebooklm.google.com/", "podcast_rel": "", "creacion": {"importancia": 75, "es_vital": false, "motivo": "Estructuración y aplicación práctica."}, "comercializacion": {"importancia": 75, "es_vital": false, "motivo": "Adquisición de clientes y conversión."}, "resumen": "Sesión grabada de Universidad Online.", "infografia": [], "checklist": [], "quiz": [], "mermaid": "", "markdown": "# 🎓 Crea con ChatGPT y Canva por Kike Cadena\n\nClase grabada y procesada.", "telegram_url": "", "telegram_app_url": "", "telegram_web_url": ""}, {"id": "estrategia para lanzamientos alberto navarro", "titulo": "Estrategia para Lanzamientos - Alberto Navarro", "fecha_iso": "2026-10-19T09:00:00-04:00", "fecha": "2026-10-19", "transversal": "Ventas y Negocios", "es_mentoria": false, "mentor": "General", "nivel": 3, "notebook_url": "https://notebook.google.com/notebook/acc48a7e-57c3-4f19-9009-5cb1db8867df", "podcast_rel": "grabaciones/estrategia_para_lanzamientos_alberto_navarro/El_negocio_de_las_agencias_de_coproducción.m4a", "creacion": {"importancia": 60, "es_vital": false, "motivo": "Es ideal para entender cómo empaquetar el conocimiento y estructurar ofertas de alto valor, aunque el enfoque principal de la clase reside en la comercialización y los lanzamientos masivos."}, "comercializacion": {"importancia": 95, "es_vital": true, "motivo": "Es vital para dominar la fase de ventas y escalado mediante lanzamientos, funnels y optimización de tráfico en la industria digital."}, "resumen": "Esta masterclass aborda en profundidad las estrategias avanzadas para escalar un negocio digital mediante lanzamientos, detallando el proceso de estructuración de ofertas, la importancia del tráfico, la optimización de funnels y la consolidación de alianzas estratégicas en el ecosistema de infoproductos. A través de la experiencia práctica de los ponentes, se analizan los puntos críticos que permiten pasar de ventas moderadas a facturaciones millonarias mediante la repetición sistemática, el perfeccionamiento del embudo de conversión y el uso de bonos y remarketing.\n\nAsimismo, se profundiza en la transición de la venta de servicios a la comercialización de infoproductos y formaciones, destacando la relevancia de la consistencia operativa, el valor de la métrica en cada etapa del embudo de ventas y la importancia de construir una estructura escalable basada en la confianza, la autoridad y la retención del cliente en la industria del conocimiento.", "infografia": [{"icono": "🎯", "titulo": "Paso 1: Definición de la Oferta", "explicacion": "Construye un producto o servicio de alto valor con un ticket atractivo que resuelva un problema específico del mercado."}, {"icono": "⚙️", "titulo": "Paso 2: Captación de Leads", "explicacion": "Utiliza funnels de registro, páginas de captura y tráfico pagado para generar una base de prospectos interesados."}, {"icono": "🚀", "titulo": "Paso 3: Calentamiento de Audiencia", "explicacion": "Nutre a los prospectos mediante contenido, webinars y secuencias de emails para elevar su nivel de conciencia."}, {"icono": "💰", "titulo": "Paso 4: Ejecución del Lanzamiento", "explicacion": "Abre las puertas de ventas utilizando escasez, bonos exclusivos y un cierre coordinado mediante carritos de compra."}], "checklist": ["Revisa las métricas actuales de tu costo por lead y tu tasa de conversión en la página de registro.", "Define un bono de acción rápida o un incentivo de escasez para tu próxima oferta de lanzamiento.", "Optimiza los textos de tus copys y anuncios de remarketing enfocándote en eliminar las objeciones del cliente."], "quiz": [{"pregunta": "¿Cuál es la estrategia recomendada para maximizar las conversiones durante la fase de apertura de un lanzamiento?", "opciones": ["A) Ofrecer descuentos masivos e indefinidos desde el primer día.", "B) Utilizar escasez real, bonos exclusivos y un cierre con límite de tiempo.", "C) Depender únicamente del tráfico orgánico sin anuncios de pago."], "respuesta_correcta": "B", "explicacion": "La escasez y los bonos exclusivos generan urgencia y aumentan drásticamente la tasa de conversión al cerrar el carrito."}, {"pregunta": "¿Qué factor resulta determinante al escalar las campañas de tráfico pagado en un lanzamiento?", "opciones": ["A) Monitorear constantemente el costo por lead y optimizar el remarketing.", "B) Apagar los anuncios a mitad del lanzamiento para ahorrar presupuesto.", "C) Cambiar de nicho cada tres días para probar suerte."], "respuesta_correcta": "A", "explicacion": "El control de las métricas de adquisición y el remarketing son esenciales para mantener la rentabilidad del lanzamiento."}, {"pregunta": "¿Cómo debe manejarse la estructura de precios en productos digitales de alto valor según lo expuesto?", "opciones": ["A) Vender siempre al precio más bajo posible para competir con todos.", "B) Diseñar una oferta con un ticket competitivo respaldado por una fuerte transformación.", "C) Ofrecer el producto gratis y cobrar solo por las consultorías."], "respuesta_correcta": "B", "explicacion": "Un ticket adecuado permite sostener los costos de adquisición de clientes y aporta mayor valor percibido al infoproducto."}, {"pregunta": "¿Qué rol cumple la etapa de 'calentamiento' antes de abrir las inscripciones en un lanzamiento?", "opciones": ["A) Generar expectativa, educar a la audiencia y elevar el deseo de compra.", "B) Ocultar el precio del producto hasta el último minuto sin dar explicaciones.", "C) Enviar spam masivo sin importar la segmentación de los prospectos."], "respuesta_correcta": "A", "explicacion": "El calentamiento prepara mentalmente al prospecto, posicionando la solución antes de presentar la oferta comercial."}, {"pregunta": "¿Qué acción se debe tomar si las métricas iniciales de un lanzamiento muestran un bajo rendimiento en registros?", "opciones": ["A) Cancelar inmediatamente el proyecto y cambiar de negocio.", "B) Ajustar la promesa del gancho de atracción y optimizar la pauta publicitaria.", "C) Duplicar el presupuesto en los mismos anuncios sin realizar cambios."], "respuesta_correcta": "B", "explicacion": "Optimizar el ángulo de comunicación y corregir la segmentación permite reconducir el embudo antes de la apertura de ventas."}], "mermaid": "graph TD\n  A[Estrategia de Lanzamientos] --> B[Tráfico y Audiencia]\n  A --> C[Oferta y Embudos]\n  B --> D[Remarketing y Anuncios]\n  C --> E[Bonos y Escasez]\n  A --> F[Estructura y Alianzas]", "markdown": "# 🎓 Ficha Académica: Estrategia para Lanzamientos - Alberto Navarro\n\n**📅 Fecha:** 19/10/2026  \n**🏷️ Transversal:** Ventas y Negocios  \n**📊 Nivel:** Nivel 3 (1=Fundamentos, 2=Implementación, 3=Escala)\n\n---\n\n## 📝 Resumen Didáctico\nEsta masterclass aborda en profundidad las estrategias avanzadas para escalar un negocio digital mediante lanzamientos, detallando el proceso de estructuración de ofertas, la importancia del tráfico, la optimización de funnels y la consolidación de alianzas estratégicas en el ecosistema de infoproductos. A través de la experiencia práctica de los ponentes, se analizan los puntos críticos que permiten pasar de ventas moderadas a facturaciones millonarias mediante la repetición sistemática, el perfeccionamiento del embudo de conversión y el uso de bonos y remarketing.\n\nAsimismo, se profundiza en la transición de la venta de servicios a la comercialización de infoproductos y formaciones, destacando la relevancia de la consistencia operativa, el valor de la métrica en cada etapa del embudo de ventas y la importancia de construir una estructura escalable basada en la confianza, la autoridad y la retención del cliente en la industria del conocimiento.\n\n---\n\n## ⚖️ Análisis Estratégico Pareto 80/20\n\n### ✏️ Vertical 1: Creación de Productos Digitales\n- **Importancia:** 60%\n- **Clasificación:** 💡 80% Complementario\n- **Aplicación Práctica:** Es ideal para entender cómo empaquetar el conocimiento y estructurar ofertas de alto valor, aunque el enfoque principal de la clase reside en la comercialización y los lanzamientos masivos.\n\n### 📈 Vertical 2: Comercialización y Ventas\n- **Importancia:** 95%\n- **Clasificación:** 🔥 20% VITAL (Indispensable)\n- **Aplicación Práctica:** Es vital para dominar la fase de ventas y escalado mediante lanzamientos, funnels y optimización de tráfico en la industria digital.\n\n---\n\n## 🎨 Infografía del Método (Paso a Paso)\n### 🎯 Paso 1: Definición de la Oferta\nConstruye un producto o servicio de alto valor con un ticket atractivo que resuelva un problema específico del mercado.\n\n### ⚙️ Paso 2: Captación de Leads\nUtiliza funnels de registro, páginas de captura y tráfico pagado para generar una base de prospectos interesados.\n\n### 🚀 Paso 3: Calentamiento de Audiencia\nNutre a los prospectos mediante contenido, webinars y secuencias de emails para elevar su nivel de conciencia.\n\n### 💰 Paso 4: Ejecución del Lanzamiento\nAbre las puertas de ventas utilizando escasez, bonos exclusivos y un cierre coordinado mediante carritos de compra.\n\n\n---\n\n## ⚡ Checklist de Acción Rápida (15 Minutos)\n- [ ] Revisa las métricas actuales de tu costo por lead y tu tasa de conversión en la página de registro.\n- [ ] Define un bono de acción rápida o un incentivo de escasez para tu próxima oferta de lanzamiento.\n- [ ] Optimiza los textos de tus copys y anuncios de remarketing enfocándote en eliminar las objeciones del cliente.\n\n---\n\n## 🗺️ Mapa Mental (Mermaid)\n```mermaid\ngraph TD\n  A[Estrategia de Lanzamientos] --> B[Tráfico y Audiencia]\n  A --> C[Oferta y Embudos]\n  B --> D[Remarketing y Anuncios]\n  C --> E[Bonos y Escasez]\n  A --> F[Estructura y Alianzas]\n```\n\n---\n\n## 🎯 Quiz Práctico de Autoevaluación\n### 1. ¿Cuál es la estrategia recomendada para maximizar las conversiones durante la fase de apertura de un lanzamiento?\n\n- A) Ofrecer descuentos masivos e indefinidos desde el primer día.\n- B) Utilizar escasez real, bonos exclusivos y un cierre con límite de tiempo.\n- C) Depender únicamente del tráfico orgánico sin anuncios de pago.\n\n<details>\n<summary>💡 <b>Ver respuesta correcta y explicación</b></summary>\n\n> **Respuesta Correcta:** Opción B\n> \n> **Explicación Didáctica:** La escasez y los bonos exclusivos generan urgencia y aumentan drásticamente la tasa de conversión al cerrar el carrito.\n</details>\n\n### 2. ¿Qué factor resulta determinante al escalar las campañas de tráfico pagado en un lanzamiento?\n\n- A) Monitorear constantemente el costo por lead y optimizar el remarketing.\n- B) Apagar los anuncios a mitad del lanzamiento para ahorrar presupuesto.\n- C) Cambiar de nicho cada tres días para probar suerte.\n\n<details>\n<summary>💡 <b>Ver respuesta correcta y explicación</b></summary>\n\n> **Respuesta Correcta:** Opción A\n> \n> **Explicación Didáctica:** El control de las métricas de adquisición y el remarketing son esenciales para mantener la rentabilidad del lanzamiento.\n</details>\n\n### 3. ¿Cómo debe manejarse la estructura de precios en productos digitales de alto valor según lo expuesto?\n\n- A) Vender siempre al precio más bajo posible para competir con todos.\n- B) Diseñar una oferta con un ticket competitivo respaldado por una fuerte transformación.\n- C) Ofrecer el producto gratis y cobrar solo por las consultorías.\n\n<details>\n<summary>💡 <b>Ver respuesta correcta y explicación</b></summary>\n\n> **Respuesta Correcta:** Opción B\n> \n> **Explicación Didáctica:** Un ticket adecuado permite sostener los costos de adquisición de clientes y aporta mayor valor percibido al infoproducto.\n</details>\n\n### 4. ¿Qué rol cumple la etapa de 'calentamiento' antes de abrir las inscripciones en un lanzamiento?\n\n- A) Generar expectativa, educar a la audiencia y elevar el deseo de compra.\n- B) Ocultar el precio del producto hasta el último minuto sin dar explicaciones.\n- C) Enviar spam masivo sin importar la segmentación de los prospectos.\n\n<details>\n<summary>💡 <b>Ver respuesta correcta y explicación</b></summary>\n\n> **Respuesta Correcta:** Opción A\n> \n> **Explicación Didáctica:** El calentamiento prepara mentalmente al prospecto, posicionando la solución antes de presentar la oferta comercial.\n</details>\n\n### 5. ¿Qué acción se debe tomar si las métricas iniciales de un lanzamiento muestran un bajo rendimiento en registros?\n\n- A) Cancelar inmediatamente el proyecto y cambiar de negocio.\n- B) Ajustar la promesa del gancho de atracción y optimizar la pauta publicitaria.\n- C) Duplicar el presupuesto en los mismos anuncios sin realizar cambios.\n\n<details>\n<summary>💡 <b>Ver respuesta correcta y explicación</b></summary>\n\n> **Respuesta Correcta:** Opción B\n> \n> **Explicación Didáctica:** Optimizar el ángulo de comunicación y corregir la segmentación permite reconducir el embudo antes de la apertura de ventas.\n</details>\n\n", "telegram_url": "", "telegram_app_url": "", "telegram_web_url": ""}, {"id": "productos que facturan 500k al mes marcos razzetti", "titulo": "Productos que facturan 500K al mes - Marcos Razzetti", "fecha_iso": "2026-10-19T13:00:00-04:00", "fecha": "2026-10-19", "transversal": "Ventas y Negociación", "es_mentoria": false, "mentor": "General", "nivel": 3, "notebook_url": "https://notebook.google.com/notebook/acc48a7e-57c3-4f19-9009-5cb1db8867df", "podcast_rel": "grabaciones/productos_que_facturan_500k_al_mes_marcos_razzetti/El_negocio_de_las_agencias_de_coproducción.m4a", "creacion": {"importancia": 80, "es_vital": true, "motivo": "Es vital cuando necesitas estructurar ofertas de alto valor (High Ticket) basadas en tu conocimiento y autoridad para dejar de depender de productos de bajo costo."}, "comercializacion": {"importancia": 95, "es_vital": true, "motivo": "Es indispensable para entender cómo escalar las ventas mediante llamadas, funnels avanzados, seguimiento y el cambio de mentalidad necesario para cobrar tarifas premium."}, "resumen": "En esta clase magistral, Marcos Razzetti comparte su experiencia escalando su negocio y la importancia de enfocar los esfuerzos en la venta de educación de alto valor mediante High Tickets. Se analiza cómo el éxito no proviene de vender cursos masivos baratos, sino de construir autoridad, posicionar marcas personales fuertes y cobrar por el valor real aportado al cliente, fundamentándose en el principio de que los procesos de venta complejos requieren atención personalizada y una mentalidad de empresario y no de autoempleado.", "infografia": [{"icono": "🎯", "titulo": "Paso 1: Construir Autoridad", "explicacion": "Posiciona tu marca personal y conocimientos para generar confianza antes de intentar vender productos de alto valor."}, {"icono": "⚙️", "titulo": "Paso 2: Definir la Oferta High Ticket", "explicacion": "Diseña programas, mentorías o servicios que resuelvan problemas complejos y justifiquen precios premium."}, {"icono": "🚀", "titulo": "Paso 3: Implementar Llamadas de Venta", "explicacion": "Utiliza procesos de llamadas 1 a 1 o sistemas de cierre personalizados para entender y resolver las necesidades del cliente."}, {"icono": "💰", "titulo": "Paso 4: Escalar con Inversión y Equipo", "explicacion": "Optimiza tus procesos y apóyate en publicidad y estructura comercial para delegar y crecer exponencialmente."}], "checklist": ["Identifica tu principal habilidad o conocimiento que puede transformarse en un servicio High Ticket.", "Calcula cuánto necesitas facturar al mes y define cuántas ventas de alto valor requerirías para alcanzarlo.", "Revisa tu proceso de ventas actual para eliminar fricciones y evaluar si estás cobrando lo que realmente vale tu servicio."], "quiz": [{"pregunta": "¿Cuál es la estrategia recomendada para escalar la facturación de forma rentable en lugar de vender cursos masivos de bajo costo?", "opciones": ["A) Enfocarse en la venta de productos High Ticket basados en autoridad y alto valor.", "B) Lanzar diariamente decenas de anuncios con presupuestos mínimos.", "C) Bajar los precios para competir por volumen en el mercado masivo."], "respuesta_correcta": "A", "explicacion": "Marcos Razzetti enfatiza que vender productos de alto valor con un enfoque en la marca personal y autoridad permite escalar los ingresos de manera sostenible sin requerir volúmenes masivos de compradores."}, {"pregunta": "Según la clase, ¿qué rol juega el posicionamiento de la marca personal en la venta de educación avanzada?", "opciones": ["A) Es un componente menor que no afecta el cierre de ventas.", "B) Es fundamental para generar confianza y justificar precios premium.", "C) Solo sirve para ganar seguidores en redes sociales sin impacto comercial."], "respuesta_correcta": "B", "explicacion": "La autoridad y la marca personal son pilares para que los clientes perciban el valor real de lo que ofreces y estén dispuestos a pagar tarifas elevadas por tu conocimiento."}, {"pregunta": "Si un negocio educativo quiere pasar de vender productos económicos a cobrar precios altos por mentorías, ¿qué cambio operativo es clave?", "opciones": ["A) Automatizar el 100% del proceso de venta sin intervención humana.", "B) Incorporar un enfoque consultivo con llamadas de ventas y cierres personalizados.", "C) Ofrecer reembolsos ilimitados para generar confianza instantánea."], "respuesta_correcta": "B", "explicacion": "Los productos de alto valor requieren un proceso de venta más cercano, analizando las necesidades del cliente potencial a través de llamadas y un trato consultivo."}, {"pregunta": "¿Qué error común cometen los emprendedores al intentar escalar un negocio digital según la perspectiva analizada?", "opciones": ["A) Pensar que el éxito se basa únicamente en soplar y hacer botellas o descuidar el valor real del proceso.", "B) Invertir demasiado tiempo en crear contenidos gratuitos.", "C) Contratar demasiados empleados antes de validar el producto."], "respuesta_correcta": "A", "explicacion": "El profesor destaca que muchos subestiman la complejidad del proceso creyendo que es un negocio fácil o rápido, cuando en realidad requiere estructura, disciplina y estrategia comercial."}, {"pregunta": "Para lograr un crecimiento exponencial en la comercialización de servicios educativos, ¿qué mentalidad debe adoptar el creador?", "opciones": ["A) La de un autoempleado que hace todas las tareas operativas solo.", "B) La de un empresario dispuesto a invertir, delegar y construir sistemas escalables.", "C) La de un empleado que busca estabilidad y horarios fijos."], "respuesta_correcta": "B", "explicacion": "Para alcanzar cifras elevadas de facturación es necesario transicionar de la operación individual a pensar como un empresario que construye sistemas, equipos y procesos repetibles."}], "mermaid": "graph TD\n  A[Negocio de Alta Facturación] --> B[Vertical Creación]\n  A --> C[Vertical Comercialización]\n  B --> D[Productos High Ticket]\n  B --> E[Autoridad y Marca Personal]\n  C --> F[Ventas por Llamadas y Cierre]\n  C --> G[Funnels y Tráfico Orgánico/Pago]", "markdown": "# 🎓 Ficha Académica: Productos que facturan 500K al mes - Marcos Razzetti\n\n**📅 Fecha:** 19/10/2026  \n**🏷️ Transversal:** Ventas y Negociación  \n**📊 Nivel:** Nivel 3 (1=Fundamentos, 2=Implementación, 3=Escala)\n\n---\n\n## 📝 Resumen Didáctico\nEn esta clase magistral, Marcos Razzetti comparte su experiencia escalando su negocio y la importancia de enfocar los esfuerzos en la venta de educación de alto valor mediante High Tickets. Se analiza cómo el éxito no proviene de vender cursos masivos baratos, sino de construir autoridad, posicionar marcas personales fuertes y cobrar por el valor real aportado al cliente, fundamentándose en el principio de que los procesos de venta complejos requieren atención personalizada y una mentalidad de empresario y no de autoempleado.\n\n---\n\n## ⚖️ Análisis Estratégico Pareto 80/20\n\n### ✏️ Vertical 1: Creación de Productos Digitales\n- **Importancia:** 80%\n- **Clasificación:** 🔥 20% VITAL (Indispensable)\n- **Aplicación Práctica:** Es vital cuando necesitas estructurar ofertas de alto valor (High Ticket) basadas en tu conocimiento y autoridad para dejar de depender de productos de bajo costo.\n\n### 📈 Vertical 2: Comercialización y Ventas\n- **Importancia:** 95%\n- **Clasificación:** 🔥 20% VITAL (Indispensable)\n- **Aplicación Práctica:** Es indispensable para entender cómo escalar las ventas mediante llamadas, funnels avanzados, seguimiento y el cambio de mentalidad necesario para cobrar tarifas premium.\n\n---\n\n## 🎨 Infografía del Método (Paso a Paso)\n### 🎯 Paso 1: Construir Autoridad\nPosiciona tu marca personal y conocimientos para generar confianza antes de intentar vender productos de alto valor.\n\n### ⚙️ Paso 2: Definir la Oferta High Ticket\nDiseña programas, mentorías o servicios que resuelvan problemas complejos y justifiquen precios premium.\n\n### 🚀 Paso 3: Implementar Llamadas de Venta\nUtiliza procesos de llamadas 1 a 1 o sistemas de cierre personalizados para entender y resolver las necesidades del cliente.\n\n### 💰 Paso 4: Escalar con Inversión y Equipo\nOptimiza tus procesos y apóyate en publicidad y estructura comercial para delegar y crecer exponencialmente.\n\n\n---\n\n## ⚡ Checklist de Acción Rápida (15 Minutos)\n- [ ] Identifica tu principal habilidad o conocimiento que puede transformarse en un servicio High Ticket.\n- [ ] Calcula cuánto necesitas facturar al mes y define cuántas ventas de alto valor requerirías para alcanzarlo.\n- [ ] Revisa tu proceso de ventas actual para eliminar fricciones y evaluar si estás cobrando lo que realmente vale tu servicio.\n\n---\n\n## 🗺️ Mapa Mental (Mermaid)\n```mermaid\ngraph TD\n  A[Negocio de Alta Facturación] --> B[Vertical Creación]\n  A --> C[Vertical Comercialización]\n  B --> D[Productos High Ticket]\n  B --> E[Autoridad y Marca Personal]\n  C --> F[Ventas por Llamadas y Cierre]\n  C --> G[Funnels y Tráfico Orgánico/Pago]\n```\n\n---\n\n## 🎯 Quiz Práctico de Autoevaluación\n### 1. ¿Cuál es la estrategia recomendada para escalar la facturación de forma rentable en lugar de vender cursos masivos de bajo costo?\n\n- A) Enfocarse en la venta de productos High Ticket basados en autoridad y alto valor.\n- B) Lanzar diariamente decenas de anuncios con presupuestos mínimos.\n- C) Bajar los precios para competir por volumen en el mercado masivo.\n\n<details>\n<summary>💡 <b>Ver respuesta correcta y explicación</b></summary>\n\n> **Respuesta Correcta:** Opción A\n> \n> **Explicación Didáctica:** Marcos Razzetti enfatiza que vender productos de alto valor con un enfoque en la marca personal y autoridad permite escalar los ingresos de manera sostenible sin requerir volúmenes masivos de compradores.\n</details>\n\n### 2. Según la clase, ¿qué rol juega el posicionamiento de la marca personal en la venta de educación avanzada?\n\n- A) Es un componente menor que no afecta el cierre de ventas.\n- B) Es fundamental para generar confianza y justificar precios premium.\n- C) Solo sirve para ganar seguidores en redes sociales sin impacto comercial.\n\n<details>\n<summary>💡 <b>Ver respuesta correcta y explicación</b></summary>\n\n> **Respuesta Correcta:** Opción B\n> \n> **Explicación Didáctica:** La autoridad y la marca personal son pilares para que los clientes perciban el valor real de lo que ofreces y estén dispuestos a pagar tarifas elevadas por tu conocimiento.\n</details>\n\n### 3. Si un negocio educativo quiere pasar de vender productos económicos a cobrar precios altos por mentorías, ¿qué cambio operativo es clave?\n\n- A) Automatizar el 100% del proceso de venta sin intervención humana.\n- B) Incorporar un enfoque consultivo con llamadas de ventas y cierres personalizados.\n- C) Ofrecer reembolsos ilimitados para generar confianza instantánea.\n\n<details>\n<summary>💡 <b>Ver respuesta correcta y explicación</b></summary>\n\n> **Respuesta Correcta:** Opción B\n> \n> **Explicación Didáctica:** Los productos de alto valor requieren un proceso de venta más cercano, analizando las necesidades del cliente potencial a través de llamadas y un trato consultivo.\n</details>\n\n### 4. ¿Qué error común cometen los emprendedores al intentar escalar un negocio digital según la perspectiva analizada?\n\n- A) Pensar que el éxito se basa únicamente en soplar y hacer botellas o descuidar el valor real del proceso.\n- B) Invertir demasiado tiempo en crear contenidos gratuitos.\n- C) Contratar demasiados empleados antes de validar el producto.\n\n<details>\n<summary>💡 <b>Ver respuesta correcta y explicación</b></summary>\n\n> **Respuesta Correcta:** Opción A\n> \n> **Explicación Didáctica:** El profesor destaca que muchos subestiman la complejidad del proceso creyendo que es un negocio fácil o rápido, cuando en realidad requiere estructura, disciplina y estrategia comercial.\n</details>\n\n### 5. Para lograr un crecimiento exponencial en la comercialización de servicios educativos, ¿qué mentalidad debe adoptar el creador?\n\n- A) La de un autoempleado que hace todas las tareas operativas solo.\n- B) La de un empresario dispuesto a invertir, delegar y construir sistemas escalables.\n- C) La de un empleado que busca estabilidad y horarios fijos.\n\n<details>\n<summary>💡 <b>Ver respuesta correcta y explicación</b></summary>\n\n> **Respuesta Correcta:** Opción B\n> \n> **Explicación Didáctica:** Para alcanzar cifras elevadas de facturación es necesario transicionar de la operación individual a pensar como un empresario que construye sistemas, equipos y procesos repetibles.\n</details>\n\n", "telegram_url": "https://t.me/c/4372486817/69", "telegram_app_url": "tg://privatepost?channel=4372486817&post=69", "telegram_web_url": "https://web.telegram.org/k/#-1004372486817_69"}];
+    const CLASES = [{"id": "marca personal con regina righi", "titulo": "Marca Personal con Regina Righi", "fecha_iso": "2026-10-18T12:30:00-04:00", "fecha": "18/10/2026", "transversal": "Marca Personal", "es_mentoria": false, "mentor": "Universidad Online", "nivel": 3, "fase_mapa": 2, "es_clave": true, "notebook_url": "https://notebooklm.google.com/", "podcast_rel": "", "tiene_audio": false, "audio_encolado": false, "creacion": {"importancia": 80, "motivo": "Estructuración y aplicación práctica de alto nivel."}, "comercializacion": {"importancia": 90, "motivo": "Adquisición de clientes, cierre de ventas y conversión."}, "resumen": "Sesión grabada y procesada en tu plataforma.", "infografia": [], "checklist": [], "quiz": [], "flashcards": [{"pregunta": "¿Cuál es el objetivo y aprendizaje principal de 'Marca Personal con Regina Righi'?", "respuesta": "Conceptos fundamentales de Marca Personal con Regina Righi.", "dificultad": "Básica"}, {"pregunta": "¿En qué área estratégica se aplica este contenido?", "respuesta": "Pertenece al eje de Marca Personal. Aplícalo paso a paso en tu modelo de negocio.", "dificultad": "Intermedia"}], "mermaid": "", "markdown": "# 🎓 Marca Personal con Regina Righi\n\nClase grabada y procesada en Universidad Online.", "telegram_url": "", "telegram_app_url": "", "telegram_web_url": "", "video_nube_url": ""}, {"id": "prospeccion con hunter game con jef riveros", "titulo": "Prospección con Hunter Game con Jef Riveros", "fecha_iso": "2026-10-18T15:00:00-04:00", "fecha": "18/10/2026", "transversal": "General", "es_mentoria": false, "mentor": "Universidad Online", "nivel": 1, "fase_mapa": 1, "es_clave": false, "notebook_url": "https://notebooklm.google.com/", "podcast_rel": "", "tiene_audio": false, "audio_encolado": false, "creacion": {"importancia": 75, "motivo": "Estructuración y aplicación práctica de alto nivel."}, "comercializacion": {"importancia": 75, "motivo": "Adquisición de clientes, cierre de ventas y conversión."}, "resumen": "Sesión grabada y procesada en tu plataforma.", "infografia": [], "checklist": [], "quiz": [], "flashcards": [{"pregunta": "¿Cuál es el objetivo y aprendizaje principal de 'Prospección con Hunter Game con Jef Riveros'?", "respuesta": "Conceptos fundamentales de Prospección con Hunter Game con Jef Riveros.", "dificultad": "Básica"}, {"pregunta": "¿En qué área estratégica se aplica este contenido?", "respuesta": "Pertenece al eje de General. Aplícalo paso a paso en tu modelo de negocio.", "dificultad": "Intermedia"}], "mermaid": "", "markdown": "# 🎓 Prospección con Hunter Game con Jef Riveros\n\nClase grabada y procesada en Universidad Online.", "telegram_url": "", "telegram_app_url": "", "telegram_web_url": "", "video_nube_url": ""}, {"id": "crea con chatgpt y canva por kike cadena", "titulo": "Crea con ChatGPT y Canva por Kike Cadena", "fecha_iso": "2026-10-18T19:00:00-04:00", "fecha": "18/10/2026", "transversal": "General", "es_mentoria": false, "mentor": "Universidad Online", "nivel": 1, "fase_mapa": 1, "es_clave": false, "notebook_url": "https://notebooklm.google.com/", "podcast_rel": "", "tiene_audio": false, "audio_encolado": false, "creacion": {"importancia": 75, "motivo": "Estructuración y aplicación práctica de alto nivel."}, "comercializacion": {"importancia": 75, "motivo": "Adquisición de clientes, cierre de ventas y conversión."}, "resumen": "Sesión grabada y procesada en tu plataforma.", "infografia": [], "checklist": [], "quiz": [], "flashcards": [{"pregunta": "¿Cuál es el objetivo y aprendizaje principal de 'Crea con ChatGPT y Canva por Kike Cadena'?", "respuesta": "Conceptos fundamentales de Crea con ChatGPT y Canva por Kike Cadena.", "dificultad": "Básica"}, {"pregunta": "¿En qué área estratégica se aplica este contenido?", "respuesta": "Pertenece al eje de General. Aplícalo paso a paso en tu modelo de negocio.", "dificultad": "Intermedia"}], "mermaid": "", "markdown": "# 🎓 Crea con ChatGPT y Canva por Kike Cadena\n\nClase grabada y procesada en Universidad Online.", "telegram_url": "", "telegram_app_url": "", "telegram_web_url": "", "video_nube_url": ""}, {"id": "estrategia para lanzamientos alberto navarro", "titulo": "Estrategia para Lanzamientos - Alberto Navarro", "fecha_iso": "2026-10-19T09:00:00-04:00", "fecha": "19/10/2026", "transversal": "Ventas y Negocios", "es_mentoria": false, "mentor": "Universidad Online", "nivel": 3, "fase_mapa": 3, "es_clave": true, "notebook_url": "https://notebook.google.com/notebook/acc48a7e-57c3-4f19-9009-5cb1db8867df", "podcast_rel": "", "tiene_audio": true, "audio_encolado": false, "creacion": {"importancia": 60, "motivo": "Es ideal para entender cómo empaquetar el conocimiento y estructurar ofertas de alto valor, aunque el enfoque principal de la clase reside en la comercialización y los lanzamientos masivos."}, "comercializacion": {"importancia": 95, "motivo": "Es vital para dominar la fase de ventas y escalado mediante lanzamientos, funnels y optimización de tráfico en la industria digital."}, "resumen": "Esta masterclass aborda en profundidad las estrategias avanzadas para escalar un negocio digital mediante lanzamientos, detallando el proceso de estructuración de ofertas, la importancia del tráfico, la optimización de funnels y la consolidación de alianzas estratégicas en el ecosistema de infoproductos. A través de la experiencia práctica de los ponentes, se analizan los puntos críticos que permiten pasar de ventas moderadas a facturaciones millonarias mediante la repetición sistemática, el perfeccionamiento del embudo de conversión y el uso de bonos y remarketing.\n\nAsimismo, se profundiza en la transición de la venta de servicios a la comercialización de infoproductos y formaciones, destacando la relevancia de la consistencia operativa, el valor de la métrica en cada etapa del embudo de ventas y la importancia de construir una estructura escalable basada en la confianza, la autoridad y la retención del cliente en la industria del conocimiento.", "infografia": [{"icono": "🎯", "titulo": "Paso 1: Definición de la Oferta", "explicacion": "Construye un producto o servicio de alto valor con un ticket atractivo que resuelva un problema específico del mercado."}, {"icono": "⚙️", "titulo": "Paso 2: Captación de Leads", "explicacion": "Utiliza funnels de registro, páginas de captura y tráfico pagado para generar una base de prospectos interesados."}, {"icono": "🚀", "titulo": "Paso 3: Calentamiento de Audiencia", "explicacion": "Nutre a los prospectos mediante contenido, webinars y secuencias de emails para elevar su nivel de conciencia."}, {"icono": "💰", "titulo": "Paso 4: Ejecución del Lanzamiento", "explicacion": "Abre las puertas de ventas utilizando escasez, bonos exclusivos y un cierre coordinado mediante carritos de compra."}], "checklist": ["Revisa las métricas actuales de tu costo por lead y tu tasa de conversión en la página de registro.", "Define un bono de acción rápida o un incentivo de escasez para tu próxima oferta de lanzamiento.", "Optimiza los textos de tus copys y anuncios de remarketing enfocándote en eliminar las objeciones del cliente."], "quiz": [{"pregunta": "¿Cuál es la estrategia recomendada para maximizar las conversiones durante la fase de apertura de un lanzamiento?", "opciones": ["A) Ofrecer descuentos masivos e indefinidos desde el primer día.", "B) Utilizar escasez real, bonos exclusivos y un cierre con límite de tiempo.", "C) Depender únicamente del tráfico orgánico sin anuncios de pago."], "respuesta_correcta": "B", "explicacion": "La escasez y los bonos exclusivos generan urgencia y aumentan drásticamente la tasa de conversión al cerrar el carrito."}, {"pregunta": "¿Qué factor resulta determinante al escalar las campañas de tráfico pagado en un lanzamiento?", "opciones": ["A) Monitorear constantemente el costo por lead y optimizar el remarketing.", "B) Apagar los anuncios a mitad del lanzamiento para ahorrar presupuesto.", "C) Cambiar de nicho cada tres días para probar suerte."], "respuesta_correcta": "A", "explicacion": "El control de las métricas de adquisición y el remarketing son esenciales para mantener la rentabilidad del lanzamiento."}, {"pregunta": "¿Cómo debe manejarse la estructura de precios en productos digitales de alto valor según lo expuesto?", "opciones": ["A) Vender siempre al precio más bajo posible para competir con todos.", "B) Diseñar una oferta con un ticket competitivo respaldado por una fuerte transformación.", "C) Ofrecer el producto gratis y cobrar solo por las consultorías."], "respuesta_correcta": "B", "explicacion": "Un ticket adecuado permite sostener los costos de adquisición de clientes y aporta mayor valor percibido al infoproducto."}, {"pregunta": "¿Qué rol cumple la etapa de 'calentamiento' antes de abrir las inscripciones en un lanzamiento?", "opciones": ["A) Generar expectativa, educar a la audiencia y elevar el deseo de compra.", "B) Ocultar el precio del producto hasta el último minuto sin dar explicaciones.", "C) Enviar spam masivo sin importar la segmentación de los prospectos."], "respuesta_correcta": "A", "explicacion": "El calentamiento prepara mentalmente al prospecto, posicionando la solución antes de presentar la oferta comercial."}, {"pregunta": "¿Qué acción se debe tomar si las métricas iniciales de un lanzamiento muestran un bajo rendimiento en registros?", "opciones": ["A) Cancelar inmediatamente el proyecto y cambiar de negocio.", "B) Ajustar la promesa del gancho de atracción y optimizar la pauta publicitaria.", "C) Duplicar el presupuesto en los mismos anuncios sin realizar cambios."], "respuesta_correcta": "B", "explicacion": "Optimizar el ángulo de comunicación y corregir la segmentación permite reconducir el embudo antes de la apertura de ventas."}], "flashcards": [{"pregunta": "¿Cómo se implementa: Paso 1: Definición de la Oferta?", "respuesta": "Construye un producto o servicio de alto valor con un ticket atractivo que resuelva un problema específico del mercado.", "dificultad": "Intermedia"}, {"pregunta": "¿Cómo se implementa: Paso 2: Captación de Leads?", "respuesta": "Utiliza funnels de registro, páginas de captura y tráfico pagado para generar una base de prospectos interesados.", "dificultad": "Intermedia"}, {"pregunta": "¿Cómo se implementa: Paso 3: Calentamiento de Audiencia?", "respuesta": "Nutre a los prospectos mediante contenido, webinars y secuencias de emails para elevar su nivel de conciencia.", "dificultad": "Intermedia"}, {"pregunta": "¿Cómo se implementa: Paso 4: Ejecución del Lanzamiento?", "respuesta": "Abre las puertas de ventas utilizando escasez, bonos exclusivos y un cierre coordinado mediante carritos de compra.", "dificultad": "Intermedia"}, {"pregunta": "Acción Rápida #1: ¿Qué acción concreta se recomienda ejecutar?", "respuesta": "Revisa las métricas actuales de tu costo por lead y tu tasa de conversión en la página de registro.", "dificultad": "Básica"}, {"pregunta": "Acción Rápida #2: ¿Qué acción concreta se recomienda ejecutar?", "respuesta": "Define un bono de acción rápida o un incentivo de escasez para tu próxima oferta de lanzamiento.", "dificultad": "Básica"}, {"pregunta": "Acción Rápida #3: ¿Qué acción concreta se recomienda ejecutar?", "respuesta": "Optimiza los textos de tus copys y anuncios de remarketing enfocándote en eliminar las objeciones del cliente.", "dificultad": "Básica"}, {"pregunta": "Pregunta de Maestría: ¿Cuál es la estrategia recomendada para maximizar las conversiones durante la fase de apertura de un lanzamiento?", "respuesta": "Opción correcta (B): La escasez y los bonos exclusivos generan urgencia y aumentan drásticamente la tasa de conversión al cerrar el carrito.", "dificultad": "Avanzada"}, {"pregunta": "Pregunta de Maestría: ¿Qué factor resulta determinante al escalar las campañas de tráfico pagado en un lanzamiento?", "respuesta": "Opción correcta (A): El control de las métricas de adquisición y el remarketing son esenciales para mantener la rentabilidad del lanzamiento.", "dificultad": "Avanzada"}, {"pregunta": "Pregunta de Maestría: ¿Cómo debe manejarse la estructura de precios en productos digitales de alto valor según lo expuesto?", "respuesta": "Opción correcta (B): Un ticket adecuado permite sostener los costos de adquisición de clientes y aporta mayor valor percibido al infoproducto.", "dificultad": "Avanzada"}, {"pregunta": "Pregunta de Maestría: ¿Qué rol cumple la etapa de 'calentamiento' antes de abrir las inscripciones en un lanzamiento?", "respuesta": "Opción correcta (A): El calentamiento prepara mentalmente al prospecto, posicionando la solución antes de presentar la oferta comercial.", "dificultad": "Avanzada"}, {"pregunta": "Pregunta de Maestría: ¿Qué acción se debe tomar si las métricas iniciales de un lanzamiento muestran un bajo rendimiento en registros?", "respuesta": "Opción correcta (B): Optimizar el ángulo de comunicación y corregir la segmentación permite reconducir el embudo antes de la apertura de ventas.", "dificultad": "Avanzada"}], "mermaid": "graph TD\n  A[Estrategia de Lanzamientos] --> B[Tráfico y Audiencia]\n  A --> C[Oferta y Embudos]\n  B --> D[Remarketing y Anuncios]\n  C --> E[Bonos y Escasez]\n  A --> F[Estructura y Alianzas]", "markdown": "# 🎓 Ficha Académica: Estrategia para Lanzamientos - Alberto Navarro\n\n**📅 Fecha:** 19/10/2026  \n**🏷️ Transversal:** Ventas y Negocios  \n**📊 Nivel:** Nivel 3 (1=Fundamentos, 2=Implementación, 3=Escala)\n\n---\n\n## 📝 Resumen Didáctico\nEsta masterclass aborda en profundidad las estrategias avanzadas para escalar un negocio digital mediante lanzamientos, detallando el proceso de estructuración de ofertas, la importancia del tráfico, la optimización de funnels y la consolidación de alianzas estratégicas en el ecosistema de infoproductos. A través de la experiencia práctica de los ponentes, se analizan los puntos críticos que permiten pasar de ventas moderadas a facturaciones millonarias mediante la repetición sistemática, el perfeccionamiento del embudo de conversión y el uso de bonos y remarketing.\n\nAsimismo, se profundiza en la transición de la venta de servicios a la comercialización de infoproductos y formaciones, destacando la relevancia de la consistencia operativa, el valor de la métrica en cada etapa del embudo de ventas y la importancia de construir una estructura escalable basada en la confianza, la autoridad y la retención del cliente en la industria del conocimiento.\n\n---\n\n## ⚖️ Análisis Estratégico Pareto 80/20\n\n### ✏️ Vertical 1: Creación de Productos Digitales\n- **Importancia:** 60%\n- **Clasificación:** 💡 80% Complementario\n- **Aplicación Práctica:** Es ideal para entender cómo empaquetar el conocimiento y estructurar ofertas de alto valor, aunque el enfoque principal de la clase reside en la comercialización y los lanzamientos masivos.\n\n### 📈 Vertical 2: Comercialización y Ventas\n- **Importancia:** 95%\n- **Clasificación:** 🔥 20% VITAL (Indispensable)\n- **Aplicación Práctica:** Es vital para dominar la fase de ventas y escalado mediante lanzamientos, funnels y optimización de tráfico en la industria digital.\n\n---\n\n## 🎨 Infografía del Método (Paso a Paso)\n### 🎯 Paso 1: Definición de la Oferta\nConstruye un producto o servicio de alto valor con un ticket atractivo que resuelva un problema específico del mercado.\n\n### ⚙️ Paso 2: Captación de Leads\nUtiliza funnels de registro, páginas de captura y tráfico pagado para generar una base de prospectos interesados.\n\n### 🚀 Paso 3: Calentamiento de Audiencia\nNutre a los prospectos mediante contenido, webinars y secuencias de emails para elevar su nivel de conciencia.\n\n### 💰 Paso 4: Ejecución del Lanzamiento\nAbre las puertas de ventas utilizando escasez, bonos exclusivos y un cierre coordinado mediante carritos de compra.\n\n\n---\n\n## ⚡ Checklist de Acción Rápida (15 Minutos)\n- [ ] Revisa las métricas actuales de tu costo por lead y tu tasa de conversión en la página de registro.\n- [ ] Define un bono de acción rápida o un incentivo de escasez para tu próxima oferta de lanzamiento.\n- [ ] Optimiza los textos de tus copys y anuncios de remarketing enfocándote en eliminar las objeciones del cliente.\n\n---\n\n## 🗺️ Mapa Mental (Mermaid)\n```mermaid\ngraph TD\n  A[Estrategia de Lanzamientos] --> B[Tráfico y Audiencia]\n  A --> C[Oferta y Embudos]\n  B --> D[Remarketing y Anuncios]\n  C --> E[Bonos y Escasez]\n  A --> F[Estructura y Alianzas]\n```\n\n---\n\n## 🎯 Quiz Práctico de Autoevaluación\n### 1. ¿Cuál es la estrategia recomendada para maximizar las conversiones durante la fase de apertura de un lanzamiento?\n\n- A) Ofrecer descuentos masivos e indefinidos desde el primer día.\n- B) Utilizar escasez real, bonos exclusivos y un cierre con límite de tiempo.\n- C) Depender únicamente del tráfico orgánico sin anuncios de pago.\n\n<details>\n<summary>💡 <b>Ver respuesta correcta y explicación</b></summary>\n\n> **Respuesta Correcta:** Opción B\n> \n> **Explicación Didáctica:** La escasez y los bonos exclusivos generan urgencia y aumentan drásticamente la tasa de conversión al cerrar el carrito.\n</details>\n\n### 2. ¿Qué factor resulta determinante al escalar las campañas de tráfico pagado en un lanzamiento?\n\n- A) Monitorear constantemente el costo por lead y optimizar el remarketing.\n- B) Apagar los anuncios a mitad del lanzamiento para ahorrar presupuesto.\n- C) Cambiar de nicho cada tres días para probar suerte.\n\n<details>\n<summary>💡 <b>Ver respuesta correcta y explicación</b></summary>\n\n> **Respuesta Correcta:** Opción A\n> \n> **Explicación Didáctica:** El control de las métricas de adquisición y el remarketing son esenciales para mantener la rentabilidad del lanzamiento.\n</details>\n\n### 3. ¿Cómo debe manejarse la estructura de precios en productos digitales de alto valor según lo expuesto?\n\n- A) Vender siempre al precio más bajo posible para competir con todos.\n- B) Diseñar una oferta con un ticket competitivo respaldado por una fuerte transformación.\n- C) Ofrecer el producto gratis y cobrar solo por las consultorías.\n\n<details>\n<summary>💡 <b>Ver respuesta correcta y explicación</b></summary>\n\n> **Respuesta Correcta:** Opción B\n> \n> **Explicación Didáctica:** Un ticket adecuado permite sostener los costos de adquisición de clientes y aporta mayor valor percibido al infoproducto.\n</details>\n\n### 4. ¿Qué rol cumple la etapa de 'calentamiento' antes de abrir las inscripciones en un lanzamiento?\n\n- A) Generar expectativa, educar a la audiencia y elevar el deseo de compra.\n- B) Ocultar el precio del producto hasta el último minuto sin dar explicaciones.\n- C) Enviar spam masivo sin importar la segmentación de los prospectos.\n\n<details>\n<summary>💡 <b>Ver respuesta correcta y explicación</b></summary>\n\n> **Respuesta Correcta:** Opción A\n> \n> **Explicación Didáctica:** El calentamiento prepara mentalmente al prospecto, posicionando la solución antes de presentar la oferta comercial.\n</details>\n\n### 5. ¿Qué acción se debe tomar si las métricas iniciales de un lanzamiento muestran un bajo rendimiento en registros?\n\n- A) Cancelar inmediatamente el proyecto y cambiar de negocio.\n- B) Ajustar la promesa del gancho de atracción y optimizar la pauta publicitaria.\n- C) Duplicar el presupuesto en los mismos anuncios sin realizar cambios.\n\n<details>\n<summary>💡 <b>Ver respuesta correcta y explicación</b></summary>\n\n> **Respuesta Correcta:** Opción B\n> \n> **Explicación Didáctica:** Optimizar el ángulo de comunicación y corregir la segmentación permite reconducir el embudo antes de la apertura de ventas.\n</details>\n\n", "telegram_url": "", "telegram_app_url": "", "telegram_web_url": "", "video_nube_url": ""}, {"id": "productos que facturan 500k al mes marcos razzetti", "titulo": "Productos que facturan 500K al mes - Marcos Razzetti", "fecha_iso": "2026-10-19T13:00:00-04:00", "fecha": "19/10/2026", "transversal": "Ventas y Negociación", "es_mentoria": false, "mentor": "Universidad Online", "nivel": 3, "fase_mapa": 2, "es_clave": true, "notebook_url": "https://notebook.google.com/notebook/acc48a7e-57c3-4f19-9009-5cb1db8867df", "podcast_rel": "", "tiene_audio": true, "audio_encolado": false, "creacion": {"importancia": 80, "motivo": "Es vital cuando necesitas estructurar ofertas de alto valor (High Ticket) basadas en tu conocimiento y autoridad para dejar de depender de productos de bajo costo."}, "comercializacion": {"importancia": 95, "motivo": "Es indispensable para entender cómo escalar las ventas mediante llamadas, funnels avanzados, seguimiento y el cambio de mentalidad necesario para cobrar tarifas premium."}, "resumen": "En esta clase magistral, Marcos Razzetti comparte su experiencia escalando su negocio y la importancia de enfocar los esfuerzos en la venta de educación de alto valor mediante High Tickets. Se analiza cómo el éxito no proviene de vender cursos masivos baratos, sino de construir autoridad, posicionar marcas personales fuertes y cobrar por el valor real aportado al cliente, fundamentándose en el principio de que los procesos de venta complejos requieren atención personalizada y una mentalidad de empresario y no de autoempleado.", "infografia": [{"icono": "🎯", "titulo": "Paso 1: Construir Autoridad", "explicacion": "Posiciona tu marca personal y conocimientos para generar confianza antes de intentar vender productos de alto valor."}, {"icono": "⚙️", "titulo": "Paso 2: Definir la Oferta High Ticket", "explicacion": "Diseña programas, mentorías o servicios que resuelvan problemas complejos y justifiquen precios premium."}, {"icono": "🚀", "titulo": "Paso 3: Implementar Llamadas de Venta", "explicacion": "Utiliza procesos de llamadas 1 a 1 o sistemas de cierre personalizados para entender y resolver las necesidades del cliente."}, {"icono": "💰", "titulo": "Paso 4: Escalar con Inversión y Equipo", "explicacion": "Optimiza tus procesos y apóyate en publicidad y estructura comercial para delegar y crecer exponencialmente."}], "checklist": ["Identifica tu principal habilidad o conocimiento que puede transformarse en un servicio High Ticket.", "Calcula cuánto necesitas facturar al mes y define cuántas ventas de alto valor requerirías para alcanzarlo.", "Revisa tu proceso de ventas actual para eliminar fricciones y evaluar si estás cobrando lo que realmente vale tu servicio."], "quiz": [{"pregunta": "¿Cuál es la estrategia recomendada para escalar la facturación de forma rentable en lugar de vender cursos masivos de bajo costo?", "opciones": ["A) Enfocarse en la venta de productos High Ticket basados en autoridad y alto valor.", "B) Lanzar diariamente decenas de anuncios con presupuestos mínimos.", "C) Bajar los precios para competir por volumen en el mercado masivo."], "respuesta_correcta": "A", "explicacion": "Marcos Razzetti enfatiza que vender productos de alto valor con un enfoque en la marca personal y autoridad permite escalar los ingresos de manera sostenible sin requerir volúmenes masivos de compradores."}, {"pregunta": "Según la clase, ¿qué rol juega el posicionamiento de la marca personal en la venta de educación avanzada?", "opciones": ["A) Es un componente menor que no afecta el cierre de ventas.", "B) Es fundamental para generar confianza y justificar precios premium.", "C) Solo sirve para ganar seguidores en redes sociales sin impacto comercial."], "respuesta_correcta": "B", "explicacion": "La autoridad y la marca personal son pilares para que los clientes perciban el valor real de lo que ofreces y estén dispuestos a pagar tarifas elevadas por tu conocimiento."}, {"pregunta": "Si un negocio educativo quiere pasar de vender productos económicos a cobrar precios altos por mentorías, ¿qué cambio operativo es clave?", "opciones": ["A) Automatizar el 100% del proceso de venta sin intervención humana.", "B) Incorporar un enfoque consultivo con llamadas de ventas y cierres personalizados.", "C) Ofrecer reembolsos ilimitados para generar confianza instantánea."], "respuesta_correcta": "B", "explicacion": "Los productos de alto valor requieren un proceso de venta más cercano, analizando las necesidades del cliente potencial a través de llamadas y un trato consultivo."}, {"pregunta": "¿Qué error común cometen los emprendedores al intentar escalar un negocio digital según la perspectiva analizada?", "opciones": ["A) Pensar que el éxito se basa únicamente en soplar y hacer botellas o descuidar el valor real del proceso.", "B) Invertir demasiado tiempo en crear contenidos gratuitos.", "C) Contratar demasiados empleados antes de validar el producto."], "respuesta_correcta": "A", "explicacion": "El profesor destaca que muchos subestiman la complejidad del proceso creyendo que es un negocio fácil o rápido, cuando en realidad requiere estructura, disciplina y estrategia comercial."}, {"pregunta": "Para lograr un crecimiento exponencial en la comercialización de servicios educativos, ¿qué mentalidad debe adoptar el creador?", "opciones": ["A) La de un autoempleado que hace todas las tareas operativas solo.", "B) La de un empresario dispuesto a invertir, delegar y construir sistemas escalables.", "C) La de un empleado que busca estabilidad y horarios fijos."], "respuesta_correcta": "B", "explicacion": "Para alcanzar cifras elevadas de facturación es necesario transicionar de la operación individual a pensar como un empresario que construye sistemas, equipos y procesos repetibles."}], "flashcards": [{"pregunta": "¿Cómo se implementa: Paso 1: Construir Autoridad?", "respuesta": "Posiciona tu marca personal y conocimientos para generar confianza antes de intentar vender productos de alto valor.", "dificultad": "Intermedia"}, {"pregunta": "¿Cómo se implementa: Paso 2: Definir la Oferta High Ticket?", "respuesta": "Diseña programas, mentorías o servicios que resuelvan problemas complejos y justifiquen precios premium.", "dificultad": "Intermedia"}, {"pregunta": "¿Cómo se implementa: Paso 3: Implementar Llamadas de Venta?", "respuesta": "Utiliza procesos de llamadas 1 a 1 o sistemas de cierre personalizados para entender y resolver las necesidades del cliente.", "dificultad": "Intermedia"}, {"pregunta": "¿Cómo se implementa: Paso 4: Escalar con Inversión y Equipo?", "respuesta": "Optimiza tus procesos y apóyate en publicidad y estructura comercial para delegar y crecer exponencialmente.", "dificultad": "Intermedia"}, {"pregunta": "Acción Rápida #1: ¿Qué acción concreta se recomienda ejecutar?", "respuesta": "Identifica tu principal habilidad o conocimiento que puede transformarse en un servicio High Ticket.", "dificultad": "Básica"}, {"pregunta": "Acción Rápida #2: ¿Qué acción concreta se recomienda ejecutar?", "respuesta": "Calcula cuánto necesitas facturar al mes y define cuántas ventas de alto valor requerirías para alcanzarlo.", "dificultad": "Básica"}, {"pregunta": "Acción Rápida #3: ¿Qué acción concreta se recomienda ejecutar?", "respuesta": "Revisa tu proceso de ventas actual para eliminar fricciones y evaluar si estás cobrando lo que realmente vale tu servicio.", "dificultad": "Básica"}, {"pregunta": "Pregunta de Maestría: ¿Cuál es la estrategia recomendada para escalar la facturación de forma rentable en lugar de vender cursos masivos de bajo costo?", "respuesta": "Opción correcta (A): Marcos Razzetti enfatiza que vender productos de alto valor con un enfoque en la marca personal y autoridad permite escalar los ingresos de manera sostenible sin requerir volúmenes masivos de compradores.", "dificultad": "Avanzada"}, {"pregunta": "Pregunta de Maestría: Según la clase, ¿qué rol juega el posicionamiento de la marca personal en la venta de educación avanzada?", "respuesta": "Opción correcta (B): La autoridad y la marca personal son pilares para que los clientes perciban el valor real de lo que ofreces y estén dispuestos a pagar tarifas elevadas por tu conocimiento.", "dificultad": "Avanzada"}, {"pregunta": "Pregunta de Maestría: Si un negocio educativo quiere pasar de vender productos económicos a cobrar precios altos por mentorías, ¿qué cambio operativo es clave?", "respuesta": "Opción correcta (B): Los productos de alto valor requieren un proceso de venta más cercano, analizando las necesidades del cliente potencial a través de llamadas y un trato consultivo.", "dificultad": "Avanzada"}, {"pregunta": "Pregunta de Maestría: ¿Qué error común cometen los emprendedores al intentar escalar un negocio digital según la perspectiva analizada?", "respuesta": "Opción correcta (A): El profesor destaca que muchos subestiman la complejidad del proceso creyendo que es un negocio fácil o rápido, cuando en realidad requiere estructura, disciplina y estrategia comercial.", "dificultad": "Avanzada"}, {"pregunta": "Pregunta de Maestría: Para lograr un crecimiento exponencial en la comercialización de servicios educativos, ¿qué mentalidad debe adoptar el creador?", "respuesta": "Opción correcta (B): Para alcanzar cifras elevadas de facturación es necesario transicionar de la operación individual a pensar como un empresario que construye sistemas, equipos y procesos repetibles.", "dificultad": "Avanzada"}], "mermaid": "graph TD\n  A[Negocio de Alta Facturación] --> B[Vertical Creación]\n  A --> C[Vertical Comercialización]\n  B --> D[Productos High Ticket]\n  B --> E[Autoridad y Marca Personal]\n  C --> F[Ventas por Llamadas y Cierre]\n  C --> G[Funnels y Tráfico Orgánico/Pago]", "markdown": "# 🎓 Ficha Académica: Productos que facturan 500K al mes - Marcos Razzetti\n\n**📅 Fecha:** 19/10/2026  \n**🏷️ Transversal:** Ventas y Negociación  \n**📊 Nivel:** Nivel 3 (1=Fundamentos, 2=Implementación, 3=Escala)\n\n---\n\n## 📝 Resumen Didáctico\nEn esta clase magistral, Marcos Razzetti comparte su experiencia escalando su negocio y la importancia de enfocar los esfuerzos en la venta de educación de alto valor mediante High Tickets. Se analiza cómo el éxito no proviene de vender cursos masivos baratos, sino de construir autoridad, posicionar marcas personales fuertes y cobrar por el valor real aportado al cliente, fundamentándose en el principio de que los procesos de venta complejos requieren atención personalizada y una mentalidad de empresario y no de autoempleado.\n\n---\n\n## ⚖️ Análisis Estratégico Pareto 80/20\n\n### ✏️ Vertical 1: Creación de Productos Digitales\n- **Importancia:** 80%\n- **Clasificación:** 🔥 20% VITAL (Indispensable)\n- **Aplicación Práctica:** Es vital cuando necesitas estructurar ofertas de alto valor (High Ticket) basadas en tu conocimiento y autoridad para dejar de depender de productos de bajo costo.\n\n### 📈 Vertical 2: Comercialización y Ventas\n- **Importancia:** 95%\n- **Clasificación:** 🔥 20% VITAL (Indispensable)\n- **Aplicación Práctica:** Es indispensable para entender cómo escalar las ventas mediante llamadas, funnels avanzados, seguimiento y el cambio de mentalidad necesario para cobrar tarifas premium.\n\n---\n\n## 🎨 Infografía del Método (Paso a Paso)\n### 🎯 Paso 1: Construir Autoridad\nPosiciona tu marca personal y conocimientos para generar confianza antes de intentar vender productos de alto valor.\n\n### ⚙️ Paso 2: Definir la Oferta High Ticket\nDiseña programas, mentorías o servicios que resuelvan problemas complejos y justifiquen precios premium.\n\n### 🚀 Paso 3: Implementar Llamadas de Venta\nUtiliza procesos de llamadas 1 a 1 o sistemas de cierre personalizados para entender y resolver las necesidades del cliente.\n\n### 💰 Paso 4: Escalar con Inversión y Equipo\nOptimiza tus procesos y apóyate en publicidad y estructura comercial para delegar y crecer exponencialmente.\n\n\n---\n\n## ⚡ Checklist de Acción Rápida (15 Minutos)\n- [ ] Identifica tu principal habilidad o conocimiento que puede transformarse en un servicio High Ticket.\n- [ ] Calcula cuánto necesitas facturar al mes y define cuántas ventas de alto valor requerirías para alcanzarlo.\n- [ ] Revisa tu proceso de ventas actual para eliminar fricciones y evaluar si estás cobrando lo que realmente vale tu servicio.\n\n---\n\n## 🗺️ Mapa Mental (Mermaid)\n```mermaid\ngraph TD\n  A[Negocio de Alta Facturación] --> B[Vertical Creación]\n  A --> C[Vertical Comercialización]\n  B --> D[Productos High Ticket]\n  B --> E[Autoridad y Marca Personal]\n  C --> F[Ventas por Llamadas y Cierre]\n  C --> G[Funnels y Tráfico Orgánico/Pago]\n```\n\n---\n\n## 🎯 Quiz Práctico de Autoevaluación\n### 1. ¿Cuál es la estrategia recomendada para escalar la facturación de forma rentable en lugar de vender cursos masivos de bajo costo?\n\n- A) Enfocarse en la venta de productos High Ticket basados en autoridad y alto valor.\n- B) Lanzar diariamente decenas de anuncios con presupuestos mínimos.\n- C) Bajar los precios para competir por volumen en el mercado masivo.\n\n<details>\n<summary>💡 <b>Ver respuesta correcta y explicación</b></summary>\n\n> **Respuesta Correcta:** Opción A\n> \n> **Explicación Didáctica:** Marcos Razzetti enfatiza que vender productos de alto valor con un enfoque en la marca personal y autoridad permite escalar los ingresos de manera sostenible sin requerir volúmenes masivos de compradores.\n</details>\n\n### 2. Según la clase, ¿qué rol juega el posicionamiento de la marca personal en la venta de educación avanzada?\n\n- A) Es un componente menor que no afecta el cierre de ventas.\n- B) Es fundamental para generar confianza y justificar precios premium.\n- C) Solo sirve para ganar seguidores en redes sociales sin impacto comercial.\n\n<details>\n<summary>💡 <b>Ver respuesta correcta y explicación</b></summary>\n\n> **Respuesta Correcta:** Opción B\n> \n> **Explicación Didáctica:** La autoridad y la marca personal son pilares para que los clientes perciban el valor real de lo que ofreces y estén dispuestos a pagar tarifas elevadas por tu conocimiento.\n</details>\n\n### 3. Si un negocio educativo quiere pasar de vender productos económicos a cobrar precios altos por mentorías, ¿qué cambio operativo es clave?\n\n- A) Automatizar el 100% del proceso de venta sin intervención humana.\n- B) Incorporar un enfoque consultivo con llamadas de ventas y cierres personalizados.\n- C) Ofrecer reembolsos ilimitados para generar confianza instantánea.\n\n<details>\n<summary>💡 <b>Ver respuesta correcta y explicación</b></summary>\n\n> **Respuesta Correcta:** Opción B\n> \n> **Explicación Didáctica:** Los productos de alto valor requieren un proceso de venta más cercano, analizando las necesidades del cliente potencial a través de llamadas y un trato consultivo.\n</details>\n\n### 4. ¿Qué error común cometen los emprendedores al intentar escalar un negocio digital según la perspectiva analizada?\n\n- A) Pensar que el éxito se basa únicamente en soplar y hacer botellas o descuidar el valor real del proceso.\n- B) Invertir demasiado tiempo en crear contenidos gratuitos.\n- C) Contratar demasiados empleados antes de validar el producto.\n\n<details>\n<summary>💡 <b>Ver respuesta correcta y explicación</b></summary>\n\n> **Respuesta Correcta:** Opción A\n> \n> **Explicación Didáctica:** El profesor destaca que muchos subestiman la complejidad del proceso creyendo que es un negocio fácil o rápido, cuando en realidad requiere estructura, disciplina y estrategia comercial.\n</details>\n\n### 5. Para lograr un crecimiento exponencial en la comercialización de servicios educativos, ¿qué mentalidad debe adoptar el creador?\n\n- A) La de un autoempleado que hace todas las tareas operativas solo.\n- B) La de un empresario dispuesto a invertir, delegar y construir sistemas escalables.\n- C) La de un empleado que busca estabilidad y horarios fijos.\n\n<details>\n<summary>💡 <b>Ver respuesta correcta y explicación</b></summary>\n\n> **Respuesta Correcta:** Opción B\n> \n> **Explicación Didáctica:** Para alcanzar cifras elevadas de facturación es necesario transicionar de la operación individual a pensar como un empresario que construye sistemas, equipos y procesos repetibles.\n</details>\n\n", "telegram_url": "https://t.me/c/4372486817/69", "telegram_app_url": "tg://privatepost?channel=4372486817&post=69", "telegram_web_url": "https://web.telegram.org/k/#-1004372486817_69", "video_nube_url": "https://t.me/c/4372486817/69"}];
     const CAPSULAS = [];
+
+    let FASE_ACTIVA = 0;
+    let FLASHCARDS_ACTUALES = [];
+    let FC_INDEX = 0;
+
+    // -------------------------------------------------------------
+    // LOCAL STORAGE: CHECKLIST DE ESTUDIO
+    // -------------------------------------------------------------
+    function getEstudiadas() {
+      try {
+        return JSON.parse(localStorage.getItem('uo_estudiadas') || '{}');
+      } catch(e) {
+        return {};
+      }
+    }
+
+    function toggleEstudiada(id, chk) {
+      const estudiadas = getEstudiadas();
+      if (chk.checked) {
+        estudiadas[id] = true;
+      } else {
+        delete estudiadas[id];
+      }
+      localStorage.setItem('uo_estudiadas', JSON.stringify(estudiadas));
+      actualizarProgreso();
+      actualizarEstilosEstudiadas();
+    }
+
+    function actualizarProgreso() {
+      const estudiadas = getEstudiadas();
+      const count = Object.keys(estudiadas).length;
+      const total = CLASES.length;
+      const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+
+      const txt = document.getElementById('progressText');
+      const bar = document.getElementById('progressBarFill');
+      if (txt) txt.innerText = `${count} / ${total} (${pct}%)`;
+      if (bar) bar.style.width = `${pct}%`;
+    }
+
+    function actualizarEstilosEstudiadas() {
+      const estudiadas = getEstudiadas();
+      document.querySelectorAll('.class-card[data-id]').forEach(card => {
+        const cid = card.getAttribute('data-id');
+        const chk = card.querySelector('.chk-input');
+        if (estudiadas[cid]) {
+          card.classList.add('estudiada');
+          if (chk) chk.checked = true;
+        } else {
+          card.classList.remove('estudiada');
+          if (chk) chk.checked = false;
+        }
+      });
+    }
+
+    // -------------------------------------------------------------
+    // MAPA PANORÁMICO
+    // -------------------------------------------------------------
+    function togglePanoramic() {
+      const grid = document.getElementById('panoramicGrid');
+      const icon = document.getElementById('panoramicToggleIcon');
+      if (grid.style.display === 'none') {
+        grid.style.display = 'grid';
+        icon.innerText = '▲ Ocultar';
+      } else {
+        grid.style.display = 'none';
+        icon.innerText = '▼ Desplegar';
+      }
+    }
+
+    function filtrarPorFase(faseNum, btn) {
+      FASE_ACTIVA = faseNum;
+      document.querySelectorAll('.phase-step').forEach(s => s.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+      filtrarTodo();
+    }
 
     function switchTab(tabId, btn) {
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -146,19 +349,42 @@
       document.getElementById(tabId).classList.add('active');
     }
 
+    // -------------------------------------------------------------
+    // RENDERIZADO DE TARJETAS
+    // -------------------------------------------------------------
     function cardClaseHtml(c) {
+      const estudiadas = getEstudiadas();
+      const esEst = Boolean(estudiadas[c.id]);
+
       return `
-        <div class="class-card ${c.creacion.es_vital ? 'vital' : ''}">
+        <div class="class-card ${c.es_clave ? 'vital' : ''} ${esEst ? 'estudiada' : ''}" data-id="${c.id}">
           <div>
-            <div class="card-meta"><span>📅 ${c.fecha}</span><span>Nivel ${c.nivel}</span></div>
+            <div class="card-top-row">
+              <div class="card-meta"><span>📅 ${c.fecha}</span> • <span>Nivel ${c.nivel}</span></div>
+              ${c.es_clave ? `<span class="badge-vital">⭐ Clase Clave</span>` : ''}
+            </div>
+            
             <div class="card-title">${c.titulo}</div>
-            <span class="card-transversal">${c.transversal}</span>
-            ${c.mentor && c.mentor !== 'General' ? `<span class="card-mentor">🎙️ ${c.mentor}</span>` : ''}
+            
+            <div class="tag-row">
+              <span class="card-transversal">${c.transversal}</span>
+              ${c.mentor ? `<span class="card-mentor">🎙️ ${c.mentor}</span>` : ''}
+              ${c.tiene_audio ? `<span class="card-date" style="background:#065f46; color:#6ee7b7;">🎧 Audio Listo</span>` : (c.audio_encolado ? `<span class="card-date" style="background:#854d0e; color:#fde047;">⏳ Audio en Cola</span>` : '')}
+            </div>
+
             <div class="card-motivo">${c.resumen}</div>
           </div>
-          <div class="card-actions">
-            <button class="btn-detail" onclick="abrirModalClase('${c.id}')">🎨 Estudio, Infografía & Quiz</button>
-            ${c.telegram_url ? `<a class="btn-card-tg" href="${c.telegram_url}" target="_blank">🎬 Video</a>` : ''}
+
+          <div>
+            <div class="card-actions">
+              <button class="btn-detail" onclick="abrirModalClase('${c.id}')">🎨 Estudio & Flashcards</button>
+              ${(c.video_nube_url || c.telegram_url) ? `<a class="btn-card-tg" href="${c.video_nube_url || c.telegram_url}" target="_blank">🎬 Ver en Telegram</a>` : ''}
+            </div>
+
+            <label class="chk-container">
+              <input type="checkbox" class="chk-input" ${esEst ? 'checked' : ''} onchange="toggleEstudiada('${c.id}', this)">
+              <span>Marcar como Estudiada / Completada</span>
+            </label>
           </div>
         </div>
       `;
@@ -166,23 +392,29 @@
 
     function cardCapsulaHtml(cap) {
       const icono = cap.tipo === 'NOTICIA' ? '📰 AVISO' : (cap.tipo === 'CAPSULA_PROFUNDA' ? '🧠 CÁPSULA IA' : '💡 TIP RÁPIDO');
-      const tieneExtra = (cap.infografia && cap.infografia.length > 0) || (cap.quiz && cap.quiz.length > 0);
       return `
         <div class="class-card">
           <div>
-            <div class="card-meta"><span>📅 ${cap.fecha}</span><span>⏰ ${cap.hora}</span></div>
+            <div class="card-top-row">
+              <div class="card-meta"><span>📅 ${cap.fecha}</span> • <span>⏰ ${cap.hora}</span></div>
+              <span class="card-transversal">${icono}</span>
+            </div>
             <div class="card-title">${cap.titulo}</div>
-            <span class="card-mentor">🎙️ Mentor: ${cap.mentor}</span>
-            <span class="card-transversal">${icono}</span>
+            <div class="tag-row">
+              <span class="card-mentor">🎙️ Mentor: ${cap.mentor}</span>
+            </div>
             <div class="card-motivo">${cap.resumen}</div>
           </div>
           <div class="card-actions">
-            ${tieneExtra ? `<button class="btn-detail" onclick="abrirModalCapsula('${cap.id}')">🎨 Ver Infografía & Quiz</button>` : ''}
+            <button class="btn-detail" onclick="abrirModalCapsula('${cap.id}')">🎨 Ver Flashcards & Quiz</button>
           </div>
         </div>
       `;
     }
 
+    // -------------------------------------------------------------
+    // FILTRADO GLOBAL
+    // -------------------------------------------------------------
     function filtrarTodo() {
       const q = document.getElementById('searchInput').value.toLowerCase().trim();
       const mentorSel = document.getElementById('filterMentor').value.toLowerCase();
@@ -192,7 +424,8 @@
         const matchQ = !q || c.titulo.toLowerCase().includes(q) || c.resumen.toLowerCase().includes(q) || (c.mentor || '').toLowerCase().includes(q);
         const matchM = mentorSel === 'todos' || (c.mentor || '').toLowerCase().includes(mentorSel);
         const matchC = catSel === 'todos' || (c.transversal || '').toLowerCase().includes(catSel);
-        return matchQ && matchM && matchC;
+        const matchF = FASE_ACTIVA === 0 || c.fase_mapa === FASE_ACTIVA;
+        return matchQ && matchM && matchC && matchF;
       });
 
       const capsFiltradas = CAPSULAS.filter(cap => {
@@ -202,45 +435,132 @@
       });
 
       const recientes = [...clasesFiltradas].sort((a,b) => (b.fecha_iso || '').localeCompare(a.fecha_iso || ''));
-      document.getElementById('grid-recientes').innerHTML = recientes.map(cardClaseHtml).join('') || '<p>No hay contenido que coincida con el filtro.</p>';
-      document.getElementById('grid-mentorias').innerHTML = recientes.filter(c => c.es_mentoria).map(cardClaseHtml).join('') || '<p>Aún no hay mentorías con este filtro.</p>';
-      document.getElementById('grid-capsulas').innerHTML = capsFiltradas.filter(x => x.tipo !== 'NOTICIA').map(cardCapsulaHtml).join('') || '<p>Sin cápsulas o tips registrados aún.</p>';
-      document.getElementById('grid-noticias').innerHTML = capsFiltradas.filter(x => x.tipo === 'NOTICIA').map(cardCapsulaHtml).join('') || '<p>Sin noticias o avisos registrados aún.</p>';
-      document.getElementById('grid-creacion').innerHTML = clasesFiltradas.map(cardClaseHtml).join('');
-      document.getElementById('grid-comercializacion').innerHTML = clasesFiltradas.map(cardClaseHtml).join('');
+      document.getElementById('grid-recientes').innerHTML = recientes.map(cardClaseHtml).join('') || '<p style="color:var(--text-muted); padding:16px;">No hay clases con este criterio.</p>';
+      document.getElementById('grid-mentorias').innerHTML = recientes.filter(c => c.es_mentoria).map(cardClaseHtml).join('') || '<p style="color:var(--text-muted); padding:16px;">Sin mentorías encontradas.</p>';
+      document.getElementById('grid-capsulas').innerHTML = capsFiltradas.filter(x => x.tipo !== 'NOTICIA').map(cardCapsulaHtml).join('') || '<p style="color:var(--text-muted); padding:16px;">Sin cápsulas registradas.</p>';
+      document.getElementById('grid-noticias').innerHTML = capsFiltradas.filter(x => x.tipo === 'NOTICIA').map(cardCapsulaHtml).join('') || '<p style="color:var(--text-muted); padding:16px;">Sin noticias registradas.</p>';
+      document.getElementById('grid-creacion').innerHTML = clasesFiltradas.filter(c => c.creacion && c.creacion.importancia >= 70).map(cardClaseHtml).join('') || '<p style="color:var(--text-muted); padding:16px;">Sin contenido de Creación.</p>';
+      document.getElementById('grid-comercializacion').innerHTML = clasesFiltradas.filter(c => c.comercializacion && c.comercializacion.importancia >= 70).map(cardClaseHtml).join('') || '<p style="color:var(--text-muted); padding:16px;">Sin contenido de Ventas.</p>';
+
+      actualizarProgreso();
+      actualizarEstilosEstudiadas();
+    }
+
+    // -------------------------------------------------------------
+    // MODAL DE DETALLE LMS & FLASHCARDS
+    // -------------------------------------------------------------
+    function renderizarFlashcard(idx) {
+      if (!FLASHCARDS_ACTUALES || FLASHCARDS_ACTUALES.length === 0) return;
+      FC_INDEX = (idx + FLASHCARDS_ACTUALES.length) % FLASHCARDS_ACTUALES.length;
+      const fc = FLASHCARDS_ACTUALES[FC_INDEX];
+
+      const box = document.getElementById('fcInner');
+      const counter = document.getElementById('fcCounter');
+      const badge = document.getElementById('fcBadge');
+      const prompt = document.getElementById('fcPrompt');
+      const ans = document.getElementById('fcAnswer');
+
+      if (box) box.classList.remove('flipped');
+      if (counter) counter.innerText = `Tarjeta ${FC_INDEX + 1} de ${FLASHCARDS_ACTUALES.length}`;
+      if (badge) badge.innerText = fc.dificultad || 'Intermedia';
+      if (prompt) prompt.innerText = fc.pregunta;
+      if (ans) ans.innerText = fc.respuesta;
+    }
+
+    function flipCard() {
+      const box = document.getElementById('fcInner');
+      if (box) box.classList.toggle('flipped');
+    }
+
+    function prevCard() {
+      renderizarFlashcard(FC_INDEX - 1);
+    }
+
+    function nextCard() {
+      renderizarFlashcard(FC_INDEX + 1);
     }
 
     function renderizarDetalleModal(item) {
+      FLASHCARDS_ACTUALES = item.flashcards || [];
+      FC_INDEX = 0;
+
+      let fcHtml = '';
+      if (FLASHCARDS_ACTUALES.length > 0) {
+        fcHtml = `
+          <div class="fc-section">
+            <div class="fc-header">
+              <span style="font-size:14px; font-weight:800; color:#a5b4fc;">🃏 FLASHCARDS DE APRENDIZAJE ACTIVO</span>
+              <span class="fc-counter" id="fcCounter">Tarjeta 1 de ${FLASHCARDS_ACTUALES.length}</span>
+            </div>
+            <div class="flashcard-wrapper" onclick="flipCard()">
+              <div class="flashcard-inner" id="fcInner">
+                <span class="fc-badge" id="fcBadge">${FLASHCARDS_ACTUALES[0].dificultad || 'Básica'}</span>
+                <div class="fc-prompt" id="fcPrompt">${FLASHCARDS_ACTUALES[0].pregunta}</div>
+                <div class="fc-hint">💡 Clic para voltear y revelar la respuesta</div>
+                <div class="fc-answer" id="fcAnswer">${FLASHCARDS_ACTUALES[0].respuesta}</div>
+              </div>
+            </div>
+            <div class="fc-controls">
+              <button class="fc-btn" onclick="prevCard()">⬅️ Anterior</button>
+              <button class="fc-btn" onclick="flipCard()">🔄 Voltear</button>
+              <button class="fc-btn" onclick="nextCard()">Siguiente ➡️</button>
+            </div>
+          </div>
+        `;
+      }
+
       let infoHtml = '';
       if (item.infografia && item.infografia.length > 0) {
-        infoHtml = `<h3 style="margin-top:18px;">🎨 Infografía Paso a Paso</h3><div class="infografia-grid">` +
+        infoHtml = `<h3 style="margin-top:20px;">🎨 Infografía Paso a Paso</h3><div class="infografia-grid">` +
           item.infografia.map(p => `<div class="info-block"><div style="font-size:26px;">${p.icono || '📌'}</div><b>${p.titulo}</b><p style="font-size:12px; color:#94a3b8; margin-top:4px;">${p.explicacion}</p></div>`).join('') + `</div>`;
       }
 
       let checkHtml = '';
       if (item.checklist && item.checklist.length > 0) {
-        checkHtml = `<h3 style="margin-top:18px;">⚡ Checklist Práctico</h3>` +
-          item.checklist.map(ch => `<div style="padding:8px; background:rgba(0,0,0,0.2); margin-top:6px; border-radius:6px;">✅ ${ch}</div>`).join('');
+        checkHtml = `<h3 style="margin-top:20px;">⚡ Checklist de Implementación (15 Min)</h3>` +
+          item.checklist.map(ch => `<div style="padding:10px; background:rgba(0,0,0,0.25); margin-top:6px; border-radius:8px;">✅ ${ch}</div>`).join('');
       }
 
       let quizHtml = '';
       if (item.quiz && item.quiz.length > 0) {
-        quizHtml = `<h3 style="margin-top:18px;">🎯 Quiz de Autoevaluación</h3>` +
+        quizHtml = `<h3 style="margin-top:20px;">🎯 Quiz de Autoevaluación Práctica</h3>` +
           item.quiz.map((q, i) => `
             <div class="quiz-box">
               <b>${i+1}. ${q.pregunta}</b>
               ${(q.opciones || []).map(op => `<button class="quiz-opt" onclick="verificarOp(this, '${op.trim().charAt(0)}', '${q.respuesta_correcta}')">${op}</button>`).join('')}
-              <div class="exp-msg" style="display:none; margin-top:8px; font-size:12px; color:#34d399;">💡 Respuesta: ${q.respuesta_correcta} — ${q.explicacion || ''}</div>
+              <div class="exp-msg" style="display:none; margin-top:8px; font-size:12px; color:#34d399;">💡 Explicación: ${q.explicacion || 'Respuesta correcta: ' + q.respuesta_correcta}</div>
             </div>
           `).join('');
       }
 
-      let mermaidHtml = item.mermaid ? `<h3 style="margin-top:18px;">🗺️ Mapa Mental</h3><div class="mermaid">${item.mermaid}</div>` : '';
+      let mermaidHtml = item.mermaid ? `<h3 style="margin-top:20px;">🗺️ Mapa Mental</h3><div class="mermaid">${item.mermaid}</div>` : '';
+
+      // Reproductor de Audio
+      let audioHtml = '';
+      if (item.podcast_rel) {
+        audioHtml = `
+          <div style="background:rgba(5, 150, 105, 0.15); border:1px solid #059669; border-radius:10px; padding:12px; margin:14px 0;">
+            <b style="color:#34d399; font-size:13px;">🎧 Reproductor de Audio Resumen (NotebookLM):</b>
+            <audio controls style="width:100%; margin-top:8px;" src="${item.podcast_rel}"></audio>
+          </div>
+        `;
+      }
 
       document.getElementById('modalContent').innerHTML = `
         <h2>${item.titulo}</h2>
-        <p style="color:#94a3b8; font-size:13px; margin:6px 0 14px;">🎙️ ${item.mentor || 'Universidad Online'} • 📅 ${item.fecha}</p>
-        <p style="background:rgba(0,0,0,0.3); padding:14px; border-radius:10px;">${item.resumen}</p>
+        <p style="color:#94a3b8; font-size:13px; margin:6px 0 14px;">
+          🎙️ ${item.mentor || 'Universidad Online'} • 📅 ${item.fecha} • 🏷️ ${item.transversal}
+        </p>
+
+        <div style="display:flex; gap:10px; margin: 12px 0 16px; flex-wrap:wrap;">
+          ${(item.video_nube_url || item.telegram_url) ? `<a class="btn-card-tg" style="padding:10px 16px; font-size:14px; border-radius:8px;" href="${item.video_nube_url || item.telegram_url}" target="_blank">🎬 Ver en Telegram (Nube)</a>` : ''}
+          ${item.notebook_url && item.notebook_url.startsWith('http') ? `<a class="btn-card-tg" style="background:#4338ca; padding:10px 16px; font-size:14px; border-radius:8px;" href="${item.notebook_url}" target="_blank">🧠 Cuaderno NotebookLM</a>` : ''}
+        </div>
+
+        ${audioHtml}
+        ${fcHtml}
+
+        <p style="background:rgba(0,0,0,0.3); padding:14px; border-radius:10px; line-height:1.6;">${item.resumen}</p>
         ${infoHtml}
         ${checkHtml}
         ${mermaidHtml}
@@ -273,7 +593,10 @@
       document.getElementById('modalDetail').classList.remove('open');
     }
 
-    window.onload = () => filtrarTodo();
+    window.onload = () => {
+      filtrarTodo();
+      actualizarProgreso();
+    };
   </script>
 </body>
 </html>
