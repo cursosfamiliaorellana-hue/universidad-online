@@ -62,7 +62,7 @@
     .class-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--card-radius); padding: 18px; display: flex; flex-direction: column; justify-content: space-between; position: relative; transition: transform 0.15s, border-color 0.15s; }
     .class-card:hover { border-color: rgba(99, 102, 241, 0.5); transform: translateY(-2px); }
     
-    /* Distintivo de Clase Clave (Reemplaza 'Pertenece al 20%') */
+    /* Distintivo de Clase Clave */
     .class-card.vital { border: 1.5px solid var(--vital-color); background: linear-gradient(180deg, var(--vital-bg) 0%, var(--card-bg) 40%); }
     .badge-vital { background: linear-gradient(135deg, #f59e0b, #d97706); color: #000; font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; margin-bottom: 8px; }
     
@@ -126,7 +126,7 @@
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=20261020072909').then(reg => reg.update());
+        navigator.serviceWorker.register('./sw.js?v=20261020073051').then(reg => reg.update());
       });
     }
   </script>
@@ -136,7 +136,7 @@
     <div class="logo-box">
       <h1>🎓 Universidad Online <span class="badge-lms">LMS Interactivo</span></h1>
       <p style="color:var(--text-muted); font-size:13px; margin-top:4px;">
-        5 Masterclasses & Mentorías • 0 Cápsulas IA • Actualizado: 20/10/2026 07:29
+        5 Masterclasses & Mentorías • 0 Cápsulas IA • Actualizado: 20/10/2026 07:30
       </p>
     </div>
     
