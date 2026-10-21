@@ -85,6 +85,46 @@ import visual_generator
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
+LOG_ORQUESTADOR_PATH = os.path.join(BASE_DIR, "logs_orquestador.txt")
+
+class FileLogger:
+    def __init__(self, filename, original_stream=None):
+        self.filename = filename
+        self.original_stream = original_stream
+
+    def write(self, message):
+        if not message:
+            return
+        if self.original_stream:
+            try:
+                self.original_stream.write(message)
+                self.original_stream.flush()
+            except Exception:
+                pass
+        try:
+            with open(self.filename, "a", encoding="utf-8", errors="replace") as f:
+                f.write(message)
+        except Exception:
+            pass
+
+    def flush(self):
+        if self.original_stream:
+            try:
+                self.original_stream.flush()
+            except Exception:
+                pass
+
+try:
+    if sys.stdout and hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    if sys.stderr and hasattr(sys.stderr, "reconfigure"):
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    pass
+
+sys.stdout = FileLogger(LOG_ORQUESTADOR_PATH, sys.stdout)
+sys.stderr = FileLogger(LOG_ORQUESTADOR_PATH, sys.stderr)
+
 CONFIG_FILE = os.path.join(BASE_DIR, "config.json")
 
 FFMPEG_EXE = os.path.join(BASE_DIR, "ffmpeg.exe")
@@ -624,14 +664,9 @@ async def tarea_post_procesamiento(
         except Exception as e_cal:
             print(f"[Post-Proceso] ⚠️ Aviso actualizando Google Calendar: {e_cal}")
 
-        # 9. PURGA AUTOMÁTICA SEGURA SÓLO TRAS SUBIDA VERIFICADA
+        # 9. RETENCIÓN LOCAL INDEFINIDA (AUTO-BORRADO ANULADO SEGÚN REQUERIMIENTO)
         if tg_url:
-            try:
-                await ejecutar_en_segundo_plano_bloqueante(
-                    database.purgar_multimedia_local_clase, id_clase, ruta_video_final, ruta_podcast
-                )
-            except Exception as e_purgar:
-                print(f"[Post-Proceso] ⚠️ Aviso en purga local: {e_purgar}")
+            print(f"[Post-Proceso] 💾 [Retención Local Indefinida] Multimedia y material IA preservados en disco para '{titulo}'.")
 
         if tg_url:
             print(f"\n🎉 [Post-Proceso] ¡TODAS LAS TAREAS DE '{titulo}' FUERON COMPLETADAS EXITOSAMENTE!")

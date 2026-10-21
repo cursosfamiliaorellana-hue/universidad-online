@@ -2593,3 +2593,105 @@ def desactivar_grupo_vigilado(id_o_palabra: str, db_path: Optional[str] = None) 
     finally:
 
         conn.close()
+
+
+def borrar_video_local_clase(id_clase: str, db_path: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Elimina físicamente los videos locales (.mp4, .webm) de una clase.
+    PRESERVA estrictamente el registro en la base de datos, los enlaces de Telegram y la Web.
+    Actualiza ruta_archivo = '' para reflejar que el video solo vive en la nube.
+    """
+    conn = get_connection(db_path)
+    clase = obtener_clase(id_clase, db_path)
+    if not clase:
+        return {"status": "error", "mensaje": f"No se encontró la clase '{id_clase}'."}
+
+    archivos_borrados = 0
+    bytes_liberados = 0
+    ruta_guardada = clase.get("ruta_archivo")
+    if ruta_guardada and os.path.exists(ruta_guardada):
+        try:
+            bytes_liberados += os.path.getsize(ruta_guardada)
+            os.remove(ruta_guardada)
+            archivos_borrados += 1
+        except Exception as e:
+            print(f"[DB] Error borrando video {ruta_guardada}: {e}")
+
+    # Escaneo complementario de videos con el slug
+    slug = normalizar_id(id_clase).replace(" ", "_")
+    dir_grab = os.path.join(BASE_DIR, "grabaciones")
+    if os.path.exists(dir_grab):
+        for root, dirs, files in os.walk(dir_grab):
+            for f in files:
+                if f.lower().endswith((".mp4", ".webm", ".mkv")):
+                    if slug in f.lower() or id_clase.lower() in f.lower():
+                        fp = os.path.join(root, f)
+                        try:
+                            bytes_liberados += os.path.getsize(fp)
+                            os.remove(fp)
+                            archivos_borrados += 1
+                        except Exception:
+                            pass
+
+    # Actualizar ruta_archivo en DB a vacío sin tocar telegram_url ni estado
+    try:
+        with conn:
+            conn.execute("UPDATE clases_grabadas SET ruta_archivo = '' WHERE id_clase = ?", (id_clase,))
+    except Exception as e:
+        print(f"[DB] Aviso actualizando ruta_archivo: {e}")
+    finally:
+        conn.close()
+
+    mb = round(bytes_liberados / (1024 * 1024), 1)
+    return {"status": "ok", "mensaje": f"Video local eliminado ({mb} MB liberados). Enlaces en Telegram y Web preservados.", "mb": mb}
+
+
+def borrar_material_ia_clase(id_clase: str, db_path: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Elimina los archivos locales de IA (.md, .png, audios temporales) de una clase.
+    PRESERVA el video local, los datos en clases.db y los enlaces de Telegram y la Web.
+    """
+    clase = obtener_clase(id_clase, db_path)
+    if not clase:
+        return {"status": "error", "mensaje": f"No se encontró la clase '{id_clase}'."}
+
+    archivos_borrados = 0
+    bytes_liberados = 0
+    slug = normalizar_id(id_clase).replace(" ", "_")
+
+    carpetas_buscar = [
+        os.path.join(BASE_DIR, "grabaciones"),
+        os.path.join(BASE_DIR, "Para_NotebookLM"),
+    ]
+    for base_c in carpetas_buscar:
+        if not os.path.exists(base_c):
+            continue
+        for root, dirs, files in os.walk(base_c):
+            for f in files:
+                f_low = f.lower()
+                if f_low.endswith((".md", ".png", ".jpg")) and (slug in f_low or id_clase.lower() in f_low or "ficha_didactica" in f_low):
+                    if slug in f_low or id_clase.lower() in f_low:
+                        fp = os.path.join(root, f)
+                        try:
+                            bytes_liberados += os.path.getsize(fp)
+                            os.remove(fp)
+                            archivos_borrados += 1
+                        except Exception:
+                            pass
+
+    mb = round(bytes_liberados / (1024 * 1024), 2)
+    return {"status": "ok", "mensaje": f"Material IA local eliminado ({archivos_borrados} archivos, {mb} MB liberados).", "archivos": archivos_borrados}
+
+
+def eliminar_clase_sistema(id_clase: str, db_path: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Elimina la clase del sistema local (clases.db y archivos locales).
+    Regenera la App Web LMS. NUNCA envía peticiones a la API de Telegram.
+    """
+    res = eliminar_clase(id_clase, db_path)
+    try:
+        import route_builder
+        route_builder.generar_tablero_rutas(auto_deploy=True)
+    except Exception as e:
+        print(f"[DB] Aviso regenerando web: {e}")
+    return {"status": "ok", "mensaje": f"Clase '{id_clase}' eliminada del sistema y Web regenerada. Telegram intacto."}

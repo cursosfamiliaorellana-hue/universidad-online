@@ -71,6 +71,46 @@ import route_builder
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
+LOG_VIGIA_PATH = os.path.join(BASE_DIR, "logs_vigia.txt")
+
+class FileLogger:
+    def __init__(self, filename, original_stream=None):
+        self.filename = filename
+        self.original_stream = original_stream
+
+    def write(self, message):
+        if not message:
+            return
+        if self.original_stream:
+            try:
+                self.original_stream.write(message)
+                self.original_stream.flush()
+            except Exception:
+                pass
+        try:
+            with open(self.filename, "a", encoding="utf-8", errors="replace") as f:
+                f.write(message)
+        except Exception:
+            pass
+
+    def flush(self):
+        if self.original_stream:
+            try:
+                self.original_stream.flush()
+            except Exception:
+                pass
+
+try:
+    if sys.stdout and hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    if sys.stderr and hasattr(sys.stderr, "reconfigure"):
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    pass
+
+sys.stdout = FileLogger(LOG_VIGIA_PATH, sys.stdout)
+sys.stderr = FileLogger(LOG_VIGIA_PATH, sys.stderr)
+
 CONFIG_FILE = os.path.join(BASE_DIR, "config.json")
 
 SESSION_FILE = os.path.join(BASE_DIR, "sesion_vigia.session")
@@ -1332,7 +1372,8 @@ async def finalizar_grabacion_voz_telegram(chat_id: int, duracion_seg: int = 0):
 
         route_builder.generar_tablero_rutas(auto_deploy=True)
 
-        database.purgar_multimedia_local_clase(id_clase, ruta_audio=ruta_audio)
+        # database.purgar_multimedia_local_clase(id_clase, ruta_audio=ruta_audio)  # Retención local indefinida
+        safe_print(f"💾 [Retención Local Indefinida] Audio de llamada preservado en disco.")
 
         safe_print(f"🎉 [Vigía Voice Chat] ¡Llamada procesada, subida a Telegram y publicada en la App Web con éxito!")
 
@@ -1510,7 +1551,8 @@ async def procesar_mensaje_vigia(event_or_msg, chat_title: str, nombre_mentor: s
 
                 route_builder.generar_tablero_rutas(auto_deploy=True)
 
-                database.purgar_multimedia_local_clase(id_clase, ruta_video=ruta_oficial)
+                # database.purgar_multimedia_local_clase(id_clase, ruta_video=ruta_oficial)  # Retención local indefinida
+                safe_print(f"💾 [Retención Local Indefinida] Grabación oficial preservada en disco.")
 
                 return
 
