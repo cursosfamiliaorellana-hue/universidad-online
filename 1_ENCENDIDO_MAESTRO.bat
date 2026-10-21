@@ -2,16 +2,24 @@
 title Encendido Maestro - Bot Universidad Online
 cd /d "%~dp0"
 
-set PYTHONW_CMD=pythonw.exe
-if exist "venv\Scripts\pythonw.exe" (
-    set "PYTHONW_CMD=venv\Scripts\pythonw.exe"
-) else if exist "..\venv\Scripts\pythonw.exe" (
-    set "PYTHONW_CMD=..\venv\Scripts\pythonw.exe"
+echo [1/3] Activando Entorno Virtual...
+if exist "venv\Scripts\activate.bat" (
+    call venv\Scripts\activate.bat
+) else if exist ".venv\Scripts\activate.bat" (
+    call .venv\Scripts\activate.bat
+) else if exist "env\Scripts\activate.bat" (
+    call env\Scripts\activate.bat
 )
 
-start "" "%PYTHONW_CMD%" main.py
-start "" "%PYTHONW_CMD%" vigia_mentorias.py
-start "" "%PYTHONW_CMD%" dashboard_web.py
+echo [2/3] Encendiendo Motores en Modo Fantasma...
+start "" pythonw main.py
+start "" pythonw vigia_mentorias.py
+start "" pythonw dashboard_web.py
 
-start "" "http://127.0.0.1:8000"
+echo [3/3] Esperando a que el Panel Web inicie...
+timeout /t 4 /nobreak >nul
+
+echo Abriendo Panel Web en el perfil del Bot...
+start chrome "http://127.0.0.1:8000" --user-data-dir="%~dp0perfil_chrome"
+
 exit
