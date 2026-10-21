@@ -1934,11 +1934,6 @@ def api_regenerar_web():
         return jsonify({"error": str(e)}), 500
 
 
-def abrir_navegador():
-    time.sleep(1.2)
-    webbrowser.open("http://127.0.0.1:8000")
-
-
 if __name__ == "__main__":
     puerto = 8000
     print("\n" + "=" * 80)
@@ -1946,15 +1941,10 @@ if __name__ == "__main__":
     print(f"   Acceso: http://127.0.0.1:{puerto}")
     print("=" * 80 + "\n")
 
-    threading.Thread(target=abrir_navegador, daemon=True).start()
-
     try:
-        app.run(host='0.0.0.0', port=8000)
+        with open("flask_live.txt", "a") as f:
+            f.write("Iniciando servidor Flask...\n")
+        app.run(host='0.0.0.0', port=8000, debug=False, use_reloader=False)
     except Exception as e:
-        with open("error_panel_critico.txt", "w", encoding="utf-8") as f:
-            f.write(f"Error al iniciar Flask: {e}")
-        try:
-            app.run(host='0.0.0.0', port=8080)
-        except Exception as e2:
-            with open("error_panel_critico.txt", "a", encoding="utf-8") as f:
-                f.write(f"\nError en puerto alternativo 8080: {e2}")
+        with open("flask_live.txt", "a") as f:
+            f.write(f"ERROR FATAL: {str(e)}\n")
