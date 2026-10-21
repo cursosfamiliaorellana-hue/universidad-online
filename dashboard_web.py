@@ -581,23 +581,23 @@ DASHBOARD_HTML = """<!DOCTYPE html>
 
   <!-- KPIs Operativos -->
   <div class="kpi-grid">
-    <div class="kpi-card">
+    <div class="kpi-card" onclick="cargarDatos()" style="cursor: pointer;" title="Clic para ver todas las clases">
       <div class="kpi-label">TOTAL CLASES</div>
       <div class="kpi-value" id="kpi-total">0</div>
     </div>
-    <div class="kpi-card">
+    <div class="kpi-card" onclick="filtrarPorEstado('GRABANDO')" style="cursor: pointer;" title="Clic para filtrar clases grabando en vivo">
       <div class="kpi-label">🔴 GRABANDO AHORA</div>
       <div class="kpi-value" id="kpi-grabando" style="color: #f87171;">0</div>
     </div>
-    <div class="kpi-card">
+    <div class="kpi-card" onclick="filtrarPorEstado('COMPLETADA')" style="cursor: pointer;" title="Clic para filtrar clases completadas en Telegram y Web">
       <div class="kpi-label">✅ EN TELEGRAM & WEB</div>
       <div class="kpi-value" id="kpi-completadas" style="color: #34d399;">0</div>
     </div>
-    <div class="kpi-card">
-      <div class="kpi-label">⏳ PENDIENTES / OVERWRITE</div>
+    <div class="kpi-card" onclick="filtrarHoy()" style="cursor: pointer;" title="Clic para ver el cronograma de hoy y pendientes">
+      <div class="kpi-label">⏳ PENDIENTES / CRONOGRAMA</div>
       <div class="kpi-value" id="kpi-pendientes" style="color: #fbbf24;">0</div>
     </div>
-    <div class="kpi-card">
+    <div class="kpi-card" onclick="abrirModalMentores()" style="cursor: pointer;" title="Clic para gestionar mentores y grupos">
       <div class="kpi-label">🎙️ MENTORES REGISTRADOS</div>
       <div class="kpi-value" id="kpi-mentores" style="color: #c084fc;">0</div>
     </div>
@@ -606,8 +606,9 @@ DASHBOARD_HTML = """<!DOCTYPE html>
   <!-- Controles de Filtro -->
   <div class="controls-bar">
     <input type="text" class="search-box" id="filtroTexto" placeholder="🔍 Buscar por título, mentor o ID..." oninput="filtrarTabla()">
-    <div style="display: flex; gap: 8px;">
-      <button class="btn" onclick="cargarDatos()">🔄 Refrescar Tabla</button>
+    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+      <button class="btn btn-warning" onclick="filtrarHoy()">📅 Ver Cronograma de Hoy / Pendientes</button>
+      <button class="btn" onclick="cargarDatos()">🔄 Ver Todas / Refrescar</button>
     </div>
   </div>
 
@@ -930,6 +931,28 @@ DASHBOARD_HTML = """<!DOCTYPE html>
                (c.mentor_identificado && c.mentor_identificado.toLowerCase().includes(q)) ||
                (c.transversal && c.transversal.toLowerCase().includes(q));
       });
+      renderTabla(filtradas);
+    }
+
+    function filtrarHoy() {
+      const hoy = new Date();
+      const aaaa = hoy.getFullYear();
+      const mm = String(hoy.getMonth() + 1).padStart(2, '0');
+      const dd = String(hoy.getDate()).padStart(2, '0');
+      const hoyISO = `${aaaa}-${mm}-${dd}`;
+      const hoySlash = `${dd}/${mm}/${aaaa}`;
+
+      const filtradas = TODAS_LAS_CLASES.filter(c => {
+        const f = c.fecha_grabacion || '';
+        const esHoy = f.includes(hoyISO) || f.includes(hoySlash);
+        const esPendiente = c.estado === 'PENDIENTE' || c.estado === 'GRABANDO' || c.regrabacion_activa == 1;
+        return esHoy || esPendiente;
+      });
+      renderTabla(filtradas);
+    }
+
+    function filtrarPorEstado(estadoFiltro) {
+      const filtradas = TODAS_LAS_CLASES.filter(c => c.estado === estadoFiltro);
       renderTabla(filtradas);
     }
 
