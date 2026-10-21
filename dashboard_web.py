@@ -125,28 +125,53 @@ def registrar_log_sistema(mensaje: str, nivel: str = "INFO"):
 
 
 class StdoutInterceptor:
+    encoding = "utf-8"
+    errors = "replace"
+
     def __init__(self, original_stdout):
         self.original_stdout = original_stdout
 
     def write(self, s):
-        if self.original_stdout:
-            try:
-                self.original_stdout.write(s)
-            except Exception:
-                pass
-        stripped = s.strip()
-        if stripped and len(stripped) > 1:
-            if "GET /api/" in stripped or "GET /static/" in stripped:
+        try:
+            if not s:
                 return
-            lvl = "ERROR" if "[!]" in stripped or "error" in stripped.lower() else ("SUCCESS" if "✅" in stripped or "éxito" in stripped.lower() else "INFO")
-            registrar_log_sistema(stripped, lvl)
+            if self.original_stdout:
+                try:
+                    self.original_stdout.write(s)
+                except TypeError:
+                    try:
+                        if isinstance(s, (bytes, bytearray)):
+                            self.original_stdout.write(s.decode("utf-8", errors="replace"))
+                        else:
+                            self.original_stdout.write(str(s).encode("utf-8", errors="replace"))
+                    except Exception:
+                        pass
+                except Exception:
+                    pass
+
+            if isinstance(s, (bytes, bytearray)):
+                try:
+                    texto = s.decode("utf-8", errors="replace")
+                except Exception:
+                    texto = str(s)
+            else:
+                texto = str(s)
+
+            stripped = texto.strip()
+            if stripped and len(stripped) > 1:
+                if "GET /api/" in stripped or "GET /static/" in stripped:
+                    return
+                lvl = "ERROR" if "[!]" in stripped or "error" in stripped.lower() else ("SUCCESS" if "✅" in stripped or "éxito" in stripped.lower() else "INFO")
+                registrar_log_sistema(stripped, lvl)
+        except Exception:
+            pass
 
     def flush(self):
-        if self.original_stdout:
-            try:
+        try:
+            if self.original_stdout:
                 self.original_stdout.flush()
-            except Exception:
-                pass
+        except Exception:
+            pass
 
 
 try:

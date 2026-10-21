@@ -74,31 +74,46 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 LOG_VIGIA_PATH = os.path.join(BASE_DIR, "logs_vigia.txt")
 
 class FileLogger:
+    encoding = "utf-8"
+    errors = "replace"
+
     def __init__(self, filename, original_stream=None):
         self.filename = filename
         self.original_stream = original_stream
 
     def write(self, message):
-        if not message:
-            return
-        if self.original_stream:
-            try:
-                self.original_stream.write(message)
-                self.original_stream.flush()
-            except Exception:
-                pass
         try:
+            if not message:
+                return
+            if isinstance(message, (bytes, bytearray)):
+                try:
+                    msg_str = message.decode("utf-8", errors="replace")
+                except Exception:
+                    msg_str = str(message)
+            else:
+                msg_str = str(message)
+
+            if self.original_stream:
+                try:
+                    self.original_stream.write(message)
+                    self.original_stream.flush()
+                except Exception:
+                    try:
+                        self.original_stream.write(msg_str)
+                        self.original_stream.flush()
+                    except Exception:
+                        pass
             with open(self.filename, "a", encoding="utf-8", errors="replace") as f:
-                f.write(message)
+                f.write(msg_str)
         except Exception:
             pass
 
     def flush(self):
-        if self.original_stream:
-            try:
+        try:
+            if self.original_stream:
                 self.original_stream.flush()
-            except Exception:
-                pass
+        except Exception:
+            pass
 
 try:
     if sys.stdout and hasattr(sys.stdout, "reconfigure"):
