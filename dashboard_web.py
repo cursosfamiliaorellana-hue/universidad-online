@@ -31,7 +31,19 @@ if sys.platform == "win32":
     except Exception:
         pass
 
-from flask import Flask, jsonify, request, render_template_string
+try:
+    from flask import Flask, jsonify, request, render_template_string
+    try:
+        from flask_cors import CORS
+    except ImportError:
+        CORS = None
+except Exception as e_imp:
+    try:
+        with open("error_panel_critico.txt", "w", encoding="utf-8") as f:
+            f.write("Error al importar Flask: " + str(e_imp))
+    except Exception:
+        pass
+    raise
 
 import database
 import route_builder
@@ -40,6 +52,11 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DIR_GRABACIONES = os.path.join(BASE_DIR, "grabaciones")
 
 app = Flask(__name__)
+if CORS:
+    try:
+        CORS(app)
+    except Exception:
+        pass
 
 # Buffer circular en memoria para logs en vivo
 LOG_BUFFER = deque(maxlen=400)
@@ -832,4 +849,15 @@ if __name__ == "__main__":
     print("=" * 80 + "\n")
 
     threading.Thread(target=abrir_navegador, daemon=True).start()
-    app.run(host="0.0.0.0", port=puerto, debug=False)
+
+    try:
+        app.run(host='0.0.0.0', port=8000)
+    except Exception as e:
+        with open("error_panel_critico.txt", "w") as f:
+            f.write(f"Error al iniciar Flask: " + str(e))
+        try:
+            # Fallback en caso de bloqueo de puerto 8000 por firewall de Windows 8
+            app.run(host='0.0.0.0', port=8080)
+        except Exception as e2:
+            with open("error_panel_critico.txt", "a") as f:
+                f.write(f"\nError al iniciar Flask en puerto alternativo 8080: " + str(e2))
