@@ -1,5 +1,5 @@
-// sw.js - Service Worker LMS Anti-Caché (Versión 20261020214438)
-const CACHE_NAME = 'uo-lms-20261020214438';
+// sw.js - Service Worker LMS Anti-Caché (Versión 20261021154336)
+const CACHE_NAME = 'uo-lms-20261021154336';
 
 self.addEventListener('install', (e) => {
   self.skipWaiting(); 
