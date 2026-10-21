@@ -832,4 +832,4 @@ if __name__ == "__main__":
     print("=" * 80 + "\n")
 
     threading.Thread(target=abrir_navegador, daemon=True).start()
-    app.run(host="127.0.0.1", port=puerto, debug=False)
+    app.run(host="0.0.0.0", port=puerto, debug=False)

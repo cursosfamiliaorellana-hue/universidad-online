@@ -29,7 +29,10 @@ __pycache__/
 logs_*.txt
 logs_ffmpeg.txt
 
-# Sesiones de Telegram y credenciales privadas
+# Sesiones de Telegram y credenciales privadas (NUNCA SUBIR A GITHUB)
+.env
+*.env
+.env.*
 *.session
 sesion_telegram.session
 sesion_vigia.session

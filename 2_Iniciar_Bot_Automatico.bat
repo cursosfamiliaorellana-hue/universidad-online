@@ -4,8 +4,25 @@ title Bot Universidad Online - Orquestador Automatico Inteligente (Fase 3)
 color 0A
 
 cd /d "%~dp0"
-set "PYTHONPATH=%~dp0libs"
+
+:: 1. Activar entorno virtual si existe
+if exist "%~dp0venv\Scripts\activate.bat" (
+    call "%~dp0venv\Scripts\activate.bat"
+)
+
+:: 2. Asegurar PYTHONPATH incluyendo raíz y carpeta libs
+set "PYTHONPATH=%~dp0;%~dp0libs;%PYTHONPATH%"
 set "NODE_SKIP_PLATFORM_CHECK=1"
+
+:: 3. Detectar ejecutable de Python
+set "PY_CMD="
+if exist "%~dp0venv\Scripts\python.exe" (
+    set "PY_CMD=%~dp0venv\Scripts\python.exe"
+) else if exist "C:\Program Files\Python38\python.exe" (
+    set "PY_CMD=C:\Program Files\Python38\python.exe"
+) else (
+    set "PY_CMD=python"
+)
 
 echo ======================================================================
 echo       BOT UNIVERSIDAD ONLINE - SISTEMA INTELIGENTE DE APRENDIZAJE
@@ -25,7 +42,7 @@ echo NOTA: Manten abierta la ventana iniciada con 1_Abrir_Chrome_Hotmart.bat
 echo ======================================================================
 echo.
 
-"C:\Program Files\Python38\python.exe" main.py
+"%PY_CMD%" main.py
 
 echo.
 echo ======================================================================

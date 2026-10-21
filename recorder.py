@@ -17,6 +17,7 @@ Soporta:
 """
 
 import asyncio
+import functools
 
 import base64
 
@@ -74,6 +75,17 @@ LOG_FFMPEG_FILE = os.path.join(BASE_DIR, "logs_ffmpeg.txt")
 
 _ENCODER_CACHE = None
 
+
+
+async def ejecutar_en_hilo(func, *args, **kwargs):
+    """Ejecuta una funcion sincrona en un hilo separado de forma 100% compatible con Python 3.8+"""
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = asyncio.get_event_loop()
+    if kwargs:
+        return await loop.run_in_executor(None, functools.partial(func, *args, **kwargs))
+    return await loop.run_in_executor(None, func, *args)
 
 def obtener_startupinfo_y_flags():
     """Configura banderas de proceso para ejecución 100% invisible en Windows sin suprimir I/O."""
@@ -1561,8 +1573,8 @@ async def grabar_stream_hotmart(
     try:
         log_f.write(f"\n--- [{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] REMUX FAST: {ruta_webm} ---\n")
         log_f.flush()
-        res_fast = await asyncio.to_thread(
-            subprocess.run, cmd_fast, stdout=log_f, stderr=subprocess.STDOUT, timeout=180, startupinfo=si, creationflags=flags
+        res_fast = await ejecutar_en_hilo(
+            subprocess.run, cmd_fast, stdout=log_f, stderr=subprocess.STDOUT, timeout=None, startupinfo=si, creationflags=flags
         )
         if res_fast.returncode == 0 and os.path.exists(ruta_salida_mp4) and verificar_integridad_video(ruta_salida_mp4):
             exito_remux = True
@@ -1591,7 +1603,7 @@ async def grabar_stream_hotmart(
             try:
                 log_f.write(f"\n--- [{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] TRANSCODE HW ({enc_nombre}) ---\n")
                 log_f.flush()
-                res_hw = await asyncio.to_thread(
+                res_hw = await ejecutar_en_hilo(
                     subprocess.run, cmd_hw, stdout=log_f, stderr=subprocess.STDOUT, timeout=None, startupinfo=si, creationflags=flags
                 )
                 if res_hw.returncode == 0 and os.path.exists(ruta_salida_mp4) and verificar_integridad_video(ruta_salida_mp4):
@@ -1615,7 +1627,7 @@ async def grabar_stream_hotmart(
             try:
                 log_f.write(f"\n--- [{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] TRANSCODE PLAN B (libx264 threads=2) ---\n")
                 log_f.flush()
-                res_trans = await asyncio.to_thread(
+                res_trans = await ejecutar_en_hilo(
                     subprocess.run, cmd_transcode, stdout=log_f, stderr=subprocess.STDOUT, timeout=None, startupinfo=si, creationflags=flags
                 )
                 if res_trans.returncode == 0 and os.path.exists(ruta_salida_mp4) and verificar_integridad_video(ruta_salida_mp4):

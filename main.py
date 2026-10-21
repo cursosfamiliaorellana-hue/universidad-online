@@ -166,11 +166,11 @@ def cargar_config() -> Dict[str, Any]:
         return json.load(f)
 
 async def ejecutar_en_segundo_plano_bloqueante(func, *args, **kwargs):
-
-    loop = asyncio.get_running_loop()
-
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = asyncio.get_event_loop()
     pfunc = functools.partial(func, *args, **kwargs)
-
     return await loop.run_in_executor(None, pfunc)
 
 def detectar_mentor_primeros_3_min(ruta_video: str, cfg: Dict[str, Any]) -> str:
@@ -298,31 +298,24 @@ def detectar_mentor_primeros_3_min(ruta_video: str, cfg: Dict[str, Any]) -> str:
     return "Sin Identificar"
 
 async def worker_post_proceso():
-
     while True:
-
         tarea = await get_cola().get()
-
         titulo = tarea["clase_info"].get("titulo_original", "Desconocido")
-
-        # Semáforo de Red y CPU: Pausar subidas pesadas mientras haya grabaciones en vivo activas
-
-        await esperar_semaforo_red(f"Post-proceso y subida de '{titulo}'")
-
-        print(f"\n[Sala de Espera] 🚦 Turno iniciado para procesar y subir: '{titulo}'")
-
+        id_clase = tarea["clase_info"].get("id_clase")
         try:
-
+            await esperar_semaforo_red(f"Post-proceso y subida de '{titulo}'")
+            print(f"\n[Sala de Espera] 🚦 Turno iniciado para procesar y subir: '{titulo}'")
             await tarea_post_procesamiento(**tarea)
-
         except Exception as e:
-
             print(f"[!] Error crítico en worker post-proceso para '{titulo}': {e}")
-
+            recorder.registrar_log_ffmpeg(f"CRITICAL POST-PROCESO ERROR '{titulo}': {e}")
+            if id_clase:
+                try:
+                    database.guardar_o_actualizar_clase(id_clase=id_clase, titulo_original=titulo, estado="ERROR")
+                except Exception:
+                    pass
         finally:
-
             get_cola().task_done()
-
             print(f"[Sala de Espera] ✅ Turno finalizado para '{titulo}'.")
 
 def sincronizar_calendario_y_bd() -> List[Dict[str, Any]]:
@@ -474,202 +467,184 @@ def seleccionar_clase_mas_proxima_hoy(config: Optional[Dict[str, Any]] = None) -
     }, "🛡️ RESPALDO"
 
 async def tarea_post_procesamiento(
-
     clase_info: Dict[str, Any],
-
     ruta_video_final: str,
-
     duracion_min: int,
-
     cal_id: str,
-
     cal_titulo_base: str,
-
     cal_inicio_iso: str,
-
     cal_fin_iso: str,
-
     cfg: Dict[str, Any],
-
 ):
-
     id_clase = clase_info["id_clase"]
-
     titulo = clase_info["titulo_original"]
-
     url_hotmart = clase_info.get("url_hotmart") or ""
-
     fecha_formateada = datetime.date.today().strftime("%d/%m/%Y")
-
     es_mentoria = (
-
         "mentoria" in id_clase.lower()
-
         or "mentoría" in titulo.lower()
-
         or "zoom.us" in url_hotmart.lower()
-
         or clase_info.get("transversal") == "Mentorías"
-
     )
-
     mentor_identificado = ""
 
-    if es_mentoria:
+    try:
+        # 1. IDENTIFICACIÓN DEFENSIVA DEL MENTOR
+        if es_mentoria:
+            try:
+                print(f"\n[Post-Proceso] 🕵️‍♂️ Escuchando primeros 3 minutos para identificar al Mentor de '{titulo}'...")
+                mentor_identificado = await ejecutar_en_segundo_plano_bloqueante(
+                    detectar_mentor_primeros_3_min, ruta_video_final, cfg
+                )
+                print(f"[Post-Proceso] 🎙️ Resultado identificación de Mentor: '{mentor_identificado}'")
+                if "mentor:" not in titulo.lower():
+                    titulo = f"{titulo} (Mentor: {mentor_identificado})"
+                    cal_titulo_base = titulo
 
-        print(f"\n[Post-Proceso] 🕵️‍♂️ Escuchando primeros 3 minutos para identificar al Mentor de '{titulo}'...")
+                carpeta_v = os.path.dirname(ruta_video_final)
+                slug_mentor = database.normalizar_id(mentor_identificado).replace(" ", "_")
+                base_actual = os.path.splitext(os.path.basename(ruta_video_final))[0]
+                if slug_mentor and slug_mentor not in base_actual.lower():
+                    nueva_ruta_mp4 = os.path.join(carpeta_v, f"{base_actual}_mentor_{slug_mentor}.mp4")
+                    os.replace(ruta_video_final, nueva_ruta_mp4)
+                    ruta_video_final = nueva_ruta_mp4
+                    print(f"[Post-Proceso] 📁 Video renombrado a: {os.path.basename(ruta_video_final)}")
+            except Exception as e_men:
+                print(f"[Post-Proceso] ⚠️ Aviso en detección de mentor: {e_men}")
 
-        mentor_identificado = await ejecutar_en_segundo_plano_bloqueante(
+        # 2. EXTRACCIÓN DEFENSIVA DE AUDIO
+        ruta_mp3 = None
+        try:
+            print(f"\n[Post-Proceso] ⚙️ Extrayendo audio completo ligero para IA de '{titulo}'...")
+            ruta_mp3 = await ejecutar_en_segundo_plano_bloqueante(ai_analyzer.extraer_audio_ligero, ruta_video_final)
+        except Exception as e_aud:
+            print(f"[Post-Proceso] ⚠️ No se pudo extraer audio ligero de '{titulo}': {e_aud}")
 
-            detectar_mentor_primeros_3_min, ruta_video_final, cfg
+        # 3. ANÁLISIS DEFENSIVO CON GEMINI
+        analisis = None
+        if ruta_mp3 and os.path.exists(ruta_mp3):
+            try:
+                print("[Post-Proceso] ⚙️ Analizando contenido con Gemini...")
+                analisis = await ejecutar_en_segundo_plano_bloqueante(ai_analyzer.analizar_clase_con_gemini, titulo, ruta_mp3)
+            except Exception as e_gem:
+                print(f"[Post-Proceso] ⚠️ Error en análisis de Gemini (cuota/timeout): {e_gem}")
 
-        )
+        if not analisis or not isinstance(analisis, dict):
+            analisis = {
+                "transversal": "Mentorías" if es_mentoria else "General",
+                "nivel": 1,
+                "resumen_didactico": "Sesión completada y grabada exitosamente.",
+            }
 
-        print(f"[Post-Proceso] 🎙️ Resultado identificación de Mentor: '{mentor_identificado}'")
-
-        if "mentor:" not in titulo.lower():
-
-            titulo = f"{titulo} (Mentor: {mentor_identificado})"
-
-            cal_titulo_base = titulo
+        if es_mentoria:
+            analisis["transversal"] = "Mentorías"
+            analisis["mentor_identificado"] = mentor_identificado or "Sin Identificar"
 
         try:
-
-            carpeta_v = os.path.dirname(ruta_video_final)
-
-            slug_mentor = database.normalizar_id(mentor_identificado).replace(" ", "_")
-
-            base_actual = os.path.splitext(os.path.basename(ruta_video_final))[0]
-
-            if slug_mentor and slug_mentor not in base_actual.lower():
-
-                nueva_ruta_mp4 = os.path.join(carpeta_v, f"{base_actual}_mentor_{slug_mentor}.mp4")
-
-                os.replace(ruta_video_final, nueva_ruta_mp4)
-
-                ruta_video_final = nueva_ruta_mp4
-
-                print(f"[Post-Proceso] 📁 Video renombrado a: {os.path.basename(ruta_video_final)}")
-
-        except Exception as e_ren:
-
-            print(f"[Aviso] No se pudo renombrar archivo local: {e_ren}")
-
-    print(f"\n[Post-Proceso] ⚙️ Extrayendo audio completo ligero para IA de '{titulo}'...")
-
-    ruta_mp3 = await ejecutar_en_segundo_plano_bloqueante(ai_analyzer.extraer_audio_ligero, ruta_video_final)
-
-    print("[Post-Proceso] ⚙️ Analizando contenido con Gemini...")
-
-    analisis = await ejecutar_en_segundo_plano_bloqueante(ai_analyzer.analizar_clase_con_gemini, titulo, ruta_mp3)
-
-    if not analisis:
-
-        analisis = {"transversal": "Mentorías" if es_mentoria else "General", "nivel": 1, "resumen_didactico": "Sesión completada."}
-
-    if es_mentoria:
-
-        analisis["transversal"] = "Mentorías"
-
-        analisis["mentor_identificado"] = mentor_identificado or "Sin Identificar"
-
-    await ejecutar_en_segundo_plano_bloqueante(database.guardar_analisis_clase, id_clase, analisis)
-
-    carpeta_video = os.path.dirname(ruta_video_final)
-
-    ruta_md = os.path.join(carpeta_video, f"Ficha_Didactica_{id_clase}.md")
-
-    await ejecutar_en_segundo_plano_bloqueante(ai_analyzer.generar_ficha_markdown, analisis, titulo, fecha_formateada, ruta_md)
-
-    print("[Post-Proceso] ⚙️ Sincronizando con NotebookLM...")
-
-    res_nlm = await notebooklm_bot.procesar_clase_en_notebooklm(clase_info, analisis, ruta_mp3, ruta_md)
-
-    notebook_url = res_nlm.get("notebook_url") if isinstance(res_nlm, dict) else None
-
-    ruta_podcast = res_nlm.get("podcast_archivo") if isinstance(res_nlm, dict) else None
-
-    print("[Post-Proceso] ⚙️ Generando Mapas Mentales visuales...")
-
-    recursos_visuales = await visual_generator.generar_recursos_visuales(analisis, titulo, id_clase, carpeta_video)
-
-    print("[Post-Proceso] ⚙️ Subiendo paquete a Telegram...")
-
-    res_tg = await telegram_uploader.subir_entrega_completa_telegram(
-
-        ruta_video=ruta_video_final,
-
-        titulo_clase=titulo,
-
-        fecha_clase=fecha_formateada,
-
-        duracion_min=duracion_min,
-
-        analisis=analisis,
-
-        notebook_url=notebook_url,
-
-        ruta_podcast=ruta_podcast,
-
-        ruta_infografia_png=recursos_visuales.get("infografia_png") if isinstance(recursos_visuales, dict) else None,
-
-        ruta_mapa_mental_png=recursos_visuales.get("mapa_mental_png") if isinstance(recursos_visuales, dict) else None,
-
-        ruta_md_guia=ruta_md,
-
-    )
-
-    tg_url = res_tg.get("telegram_url") if isinstance(res_tg, dict) else ""
-
-    tg_app_url = res_tg.get("telegram_app_url") if isinstance(res_tg, dict) else ""
-
-    tg_web_url = res_tg.get("telegram_web_url") if isinstance(res_tg, dict) else ""
-
-    await ejecutar_en_segundo_plano_bloqueante(
-
-        database.guardar_o_actualizar_clase,
-
-        id_clase, titulo, clase_info.get("inicio_iso"), "COMPLETADA", ruta_video_final,
-
-        url_hotmart, tg_url, tg_app_url, tg_web_url,
-
-    )
-
-    await ejecutar_en_segundo_plano_bloqueante(database.guardar_analisis_clase, id_clase, analisis)
-
-    print("[Post-Proceso] ⚙️ Actualizando App Web en GitHub Pages...")
-
-    await ejecutar_en_segundo_plano_bloqueante(route_builder.generar_tablero_rutas, auto_deploy=True)
-
-    await ejecutar_en_segundo_plano_bloqueante(
-
-        calendar_sync.actualizar_estado_evento, cal_id, cal_titulo_base, "✅ [EN TELEGRAM]", cal_inicio_iso, cal_fin_iso, cfg
-
-    )
-
-    # =========================================================================
-
-    # LIMPIEZA AUTOMÁTICA POST-PUBLICACIÓN (AUTO-BORRADO DE MULTIMEDIA PESADA)
-
-    # 1) Subida a Telegram con éxito [OK]
-
-    # 2) Procesada en NotebookLM [OK]
-
-    # 3) Actualizada en la App Web [OK]
-
-    # -> Purgar .mp4 y .m4a locales liberando RAM y Disco Duro
-
-    # =========================================================================
-
-    if tg_url:
-
+            await ejecutar_en_segundo_plano_bloqueante(database.guardar_analisis_clase, id_clase, analisis)
+        except Exception as e_db:
+            print(f"[Post-Proceso] ⚠️ Aviso guardando análisis en BD: {e_db}")
+
+        carpeta_video = os.path.dirname(ruta_video_final)
+        ruta_md = os.path.join(carpeta_video, f"Ficha_Didactica_{id_clase}.md")
+        try:
+            await ejecutar_en_segundo_plano_bloqueante(ai_analyzer.generar_ficha_markdown, analisis, titulo, fecha_formateada, ruta_md)
+        except Exception as e_md:
+            print(f"[Post-Proceso] ⚠️ Aviso generando ficha markdown: {e_md}")
+
+        # 4. SINCRONIZACIÓN DEFENSIVA CON NOTEBOOKLM
+        notebook_url = None
+        ruta_podcast = None
+        try:
+            print("[Post-Proceso] ⚙️ Sincronizando con NotebookLM...")
+            res_nlm = await notebooklm_bot.procesar_clase_en_notebooklm(clase_info, analisis, ruta_mp3, ruta_md)
+            if isinstance(res_nlm, dict):
+                notebook_url = res_nlm.get("notebook_url")
+                ruta_podcast = res_nlm.get("podcast_archivo")
+        except Exception as e_nlm:
+            print(f"[Post-Proceso] ⚠️ Aviso en sincronización NotebookLM: {e_nlm}")
+
+        # 5. GENERACIÓN VISUAL DEFENSIVA
+        recursos_visuales = {}
+        try:
+            print("[Post-Proceso] ⚙️ Generando Mapas Mentales visuales...")
+            res_vis = await visual_generator.generar_recursos_visuales(analisis, titulo, id_clase, carpeta_video)
+            if isinstance(res_vis, dict):
+                recursos_visuales = res_vis
+        except Exception as e_vis:
+            print(f"[Post-Proceso] ⚠️ Aviso en generador de recursos visuales: {e_vis}")
+
+        # 6. SUBIDA DEFENSIVA A TELEGRAM
+        tg_url = ""
+        tg_app_url = ""
+        tg_web_url = ""
+        try:
+            print("[Post-Proceso] ⚙️ Subiendo paquete a Telegram...")
+            res_tg = await telegram_uploader.subir_entrega_completa_telegram(
+                ruta_video=ruta_video_final,
+                titulo_clase=titulo,
+                fecha_clase=fecha_formateada,
+                duracion_min=duracion_min,
+                analisis=analisis,
+                notebook_url=notebook_url,
+                ruta_podcast=ruta_podcast,
+                ruta_infografia_png=recursos_visuales.get("infografia_png"),
+                ruta_mapa_mental_png=recursos_visuales.get("mapa_mental_png"),
+                ruta_md_guia=ruta_md,
+            )
+            if isinstance(res_tg, dict):
+                tg_url = res_tg.get("telegram_url") or ""
+                tg_app_url = res_tg.get("telegram_app_url") or ""
+                tg_web_url = res_tg.get("telegram_web_url") or ""
+        except Exception as e_tg:
+            print(f"\n[Post-Proceso] ⚠️ Error durante subida a Telegram para '{titulo}': {e_tg}")
+            recorder.registrar_log_ffmpeg(f"ERROR SUBIDA TELEGRAM '{titulo}': {e_tg}")
+
+        # 7. REGISTRO EN BASE DE DATOS
+        estado_final = "COMPLETADA" if tg_url else "ERROR_SUBIDA"
         await ejecutar_en_segundo_plano_bloqueante(
-
-            database.purgar_multimedia_local_clase, id_clase, ruta_video_final, ruta_podcast
-
+            database.guardar_o_actualizar_clase,
+            id_clase, titulo, clase_info.get("inicio_iso"), estado_final, ruta_video_final,
+            url_hotmart, tg_url, tg_app_url, tg_web_url,
         )
+        await ejecutar_en_segundo_plano_bloqueante(database.guardar_analisis_clase, id_clase, analisis)
 
-    print(f"\n🎉 [Post-Proceso] ¡TODAS LAS TAREAS DE '{titulo}' FUERON COMPLETADAS EXITOSAMENTE!")
+        # 8. APP WEB GITHUB PAGES Y GOOGLE CALENDAR
+        try:
+            print("[Post-Proceso] ⚙️ Actualizando App Web en GitHub Pages...")
+            await ejecutar_en_segundo_plano_bloqueante(route_builder.generar_tablero_rutas, auto_deploy=True)
+        except Exception as e_web:
+            print(f"[Post-Proceso] ⚠️ Aviso actualizando App Web: {e_web}")
+
+        try:
+            estado_cal = "✅ [EN TELEGRAM]" if tg_url else "⚠️ [GRABADA - ERROR SUBIDA]"
+            await ejecutar_en_segundo_plano_bloqueante(
+                calendar_sync.actualizar_estado_evento, cal_id, cal_titulo_base, estado_cal, cal_inicio_iso, cal_fin_iso, cfg
+            )
+        except Exception as e_cal:
+            print(f"[Post-Proceso] ⚠️ Aviso actualizando Google Calendar: {e_cal}")
+
+        # 9. PURGA AUTOMÁTICA SEGURA SÓLO TRAS SUBIDA VERIFICADA
+        if tg_url:
+            try:
+                await ejecutar_en_segundo_plano_bloqueante(
+                    database.purgar_multimedia_local_clase, id_clase, ruta_video_final, ruta_podcast
+                )
+            except Exception as e_purgar:
+                print(f"[Post-Proceso] ⚠️ Aviso en purga local: {e_purgar}")
+
+        if tg_url:
+            print(f"\n🎉 [Post-Proceso] ¡TODAS LAS TAREAS DE '{titulo}' FUERON COMPLETADAS EXITOSAMENTE!")
+        else:
+            print(f"\n⚠️ [Post-Proceso] Grabación de '{titulo}' preservada localmente en estado '{estado_final}'.")
+
+    except Exception as e_general:
+        print(f"\n[Post-Proceso] ❌ Error inesperado en post-proceso de '{titulo}': {e_general}")
+        recorder.registrar_log_ffmpeg(f"ERROR GENERAL POST-PROCESO '{titulo}': {e_general}")
+        try:
+            database.guardar_o_actualizar_clase(id_clase=id_clase, titulo_original=titulo, estado="ERROR", ruta_archivo=ruta_video_final)
+        except Exception:
+            pass
 
 async def procesar_flujo_clase(
 
@@ -931,7 +906,14 @@ async def procesar_flujo_clase(
         })
 
         return True
-
+    except Exception as e_flujo:
+        print(f"\n[Orquestador] ⚠️ Error en flujo de grabación de '{titulo}': {e_flujo}")
+        recorder.registrar_log_ffmpeg(f"ERROR EN FLUJO DE GRABACION '{titulo}': {e_flujo}")
+        try:
+            database.guardar_o_actualizar_clase(id_clase=id_clase, titulo_original=titulo, estado="ERROR")
+        except Exception:
+            pass
+        return False
     finally:
 
         CLASES_EN_EJECUCION.discard(id_clase)

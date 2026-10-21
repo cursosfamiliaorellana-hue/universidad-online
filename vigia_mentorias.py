@@ -17,6 +17,7 @@ Monitorea canales y grupos de Universidad Online y Mentores:
 """
 
 import asyncio
+import functools
 
 import base64
 
@@ -85,6 +86,17 @@ def cargar_config() -> dict:
     with open(CONFIG_FILE, "r", encoding="utf-8") as f:
 
         return json.load(f)
+
+
+async def ejecutar_en_hilo(func, *args, **kwargs):
+    """Ejecuta una funcion sincrona en un hilo separado de forma 100% compatible con Python 3.8+"""
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = asyncio.get_event_loop()
+    if kwargs:
+        return await loop.run_in_executor(None, functools.partial(func, *args, **kwargs))
+    return await loop.run_in_executor(None, func, *args)
 
 def safe_print(texto: str = ""):
 
@@ -1997,23 +2009,20 @@ async def ejecutar_barrido_historico(client: TelegramClient, chats_vigilados: Di
 
                 safe_print(f"   🚀 [Cloud Batching] Enviando lote de {len(mensajes_para_lote)} mensajes de '{chat_title}' a Gemini...")
 
-                aportes_valiosos = await asyncio.to_thread(
-
-                    analizar_lote_mensajes_con_gemini,
-
-                    mensajes_para_lote,
-
-                    nombre_mentor,
-
-                    chat_title,
-
-                    gemini_key,
-
-                    modelo_cfg
-
-                )
-
-                safe_print(f"   ✨ [Cloud Batching] Gemini identificó {len(aportes_valiosos)} aportes de alto valor en la nube.")
+                aportes_valiosos = []
+                try:
+                    aportes_valiosos = await ejecutar_en_hilo(
+                        analizar_lote_mensajes_con_gemini,
+                        mensajes_para_lote,
+                        nombre_mentor,
+                        chat_title,
+                        gemini_key,
+                        modelo_cfg
+                    )
+                    safe_print(f"   ✨ [Cloud Batching] Gemini identificó {len(aportes_valiosos)} aportes de alto valor en la nube.")
+                except Exception as e_gem_batch:
+                    safe_print(f"   ⚠️ [Cloud Batching] Aviso al procesar lote con Gemini: {e_gem_batch}")
+                    aportes_valiosos = []
 
                 for valioso in aportes_valiosos:
 

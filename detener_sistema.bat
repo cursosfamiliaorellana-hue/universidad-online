@@ -14,8 +14,9 @@ taskkill /F /IM ffmpeg.exe 2>nul
 echo [2/3] Finalizando ventanas y procesos de Python asociados...
 taskkill /F /FI "WINDOWTITLE eq Bot Universidad Online*" 2>nul
 taskkill /F /IM python.exe 2>nul
+taskkill /F /IM pythonw.exe 2>nul
 
-echo [3/3] Finalizando posibles tuneles locales residuales...
+echo [3/3] Finalizando posibles procesos de fondo residuales...
 taskkill /F /IM cloudflared.exe 2>nul
 
 echo.
