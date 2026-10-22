@@ -312,7 +312,7 @@ def detectar_mentor_primeros_3_min(ruta_video: str, cfg: Dict[str, Any]) -> str:
 
         # CLOUD OFFLOADING & STREAMING: Subir audio ligero a Gemini File API por streaming
         audio_part = None
-        file_uri = ai_analyzer.subir_audio_gemini(ruta_clip, gemini_key)
+        file_uri = ai_analyzer.subir_audio_gemini(ruta_clip, api_key)
         if file_uri:
             audio_part = {"file_data": {"file_uri": file_uri, "mime_type": "audio/mp3"}}
         else:
