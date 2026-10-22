@@ -524,7 +524,7 @@ def sincronizar_y_rescatar_grabaciones_locales(db_path: Optional[str] = None) ->
 
                 )
 
-                tiene_archivos = (r.get("ruta_archivo") and os.path.exists(r["ruta_archivo"])) or len(posibles) > 0 or bool(r.get("analisis_json")) or bool(r.get("telegram_url"))
+                tiene_archivos = bool((r.get("ruta_archivo") and os.path.isfile(r["ruta_archivo"]) and os.path.getsize(r["ruta_archivo"]) > 1024 * 1024) or (posibles and any(os.path.isfile(f) and os.path.getsize(f) > 1024 * 1024 for f in posibles)) or bool(r.get("telegram_url")))
 
                 if r.get("estado") not in ("COMPLETADA", "OCULTA", "CANCELADO_MANUALMENTE") and tiene_archivos:
 

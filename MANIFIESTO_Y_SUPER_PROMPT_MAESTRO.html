@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Manifiesto y Super Prompt Maestro - Bot Universidad Online</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 20mm 15mm 20mm 15mm;
+      @bottom-right {
+        content: counter(page);
+      }
+    }
+    body {
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+      color: #1e293b;
+      background: #ffffff;
+      line-height: 1.6;
+      font-size: 11pt;
+    }
+    h1 {
+      font-size: 22pt;
+      color: #0f172a;
+      border-bottom: 3px solid #0284c7;
+      padding-bottom: 8px;
+      margin-top: 0;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    h2 {
+      font-size: 15pt;
+      color: #0369a1;
+      border-bottom: 1px solid #cbd5e1;
+      padding-bottom: 4px;
+      margin-top: 24px;
+    }
+    h3 {
+      font-size: 12pt;
+      color: #0f172a;
+      margin-top: 16px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 3px 8px;
+      background: #e0f2fe;
+      color: #0369a1;
+      border-radius: 4px;
+      font-weight: 700;
+      font-size: 9pt;
+      margin-bottom: 12px;
+    }
+    .callout {
+      background: #f8fafc;
+      border-left: 4px solid #0284c7;
+      padding: 12px 16px;
+      margin: 16px 0;
+      border-radius: 0 6px 6px 0;
+      font-size: 10pt;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+      font-size: 9.5pt;
+    }
+    th, td {
+      padding: 8px 10px;
+      border: 1px solid #cbd5e1;
+      text-align: left;
+    }
+    th {
+      background: #0f172a;
+      color: #ffffff;
+      font-weight: 600;
+    }
+    tr:nth-child(even) {
+      background: #f8fafc;
+    }
+    pre, code {
+      font-family: 'Consolas', 'Courier New', monospace;
+      background: #090d16;
+      color: #f1f5f9;
+      border-radius: 6px;
+    }
+    code {
+      padding: 2px 5px;
+      font-size: 9pt;
+      color: #0284c7;
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+    }
+    pre {
+      padding: 14px;
+      font-size: 9pt;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      line-height: 1.4;
+      border: 1px solid #1e293b;
+    }
+    .super-prompt-box {
+      background: #050811;
+      color: #38bdf8;
+      border: 2px solid #0284c7;
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 16px;
+      font-family: 'Consolas', monospace;
+      font-size: 8.5pt;
+      white-space: pre-wrap;
+      line-height: 1.35;
+    }
+    .page-break {
+      page-break-before: always;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="badge">MANIFIESTO MAESTRO & PLAN DE RECUPERACIÓN ANTE DESASTRES</div>
+  <h1>Bot Universidad Online</h1>
+  <p style="font-size: 12pt; color: #475569; margin-top: -6px;">
+    <strong>Arquitectura del Sistema, Auto-Sanación y Super Prompt Maestro de Reconstrucción Total</strong>
+  </p>
+
+  <div class="callout">
+    <strong>Propósito de este Documento:</strong> Este archivo recopila formalmente la arquitectura completa del sistema de grabación desatendida, el protocolo de sincronización y auto-sanación entre la Laptop Acer y la Laptop Dell, las reglas de negocio inmutables y el <strong>Super Prompt Maestro</strong>. Si el equipo sufriera un formateo o pérdida de repositorios, basta con copiar y pegar dicho prompt en Google Antigravity para regenerar el 100% del ecosistema desde cero.
+  </div>
+
+  <h2>1. Topología del Sistema y Red Híbrida (Acer & Dell)</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Dispositivo / Nodo</th>
+        <th>Dirección IP / Puerto</th>
+        <th>Rol en la Arquitectura</th>
+        <th>Procesos Ejecutados</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Laptop Acer</strong> (Cliente Operativo)</td>
+        <td>192.168.100.229<br>Puertos 8000, 9222</td>
+        <td>Ejecución de navegador real, perfiles de sesión, captura de video y panel web.</td>
+        <td>Google Chrome (CDP 9222), Flask (8000), main.py, vigia_mentorias.py, recorder.py</td>
+      </tr>
+      <tr>
+        <td><strong>Laptop Dell</strong> (Agente Antigravity IA)</td>
+        <td>192.168.100.243<br>Puerto 5005</td>
+        <td>Auditoría remota de código, auto-sanación, análisis heurístico y control de versiones.</td>
+        <td>Google Antigravity Agent, Endpoint de recepción /api/antigravity/sync_errores</td>
+      </tr>
+      <tr>
+        <td><strong>Almacenamiento Compartido</strong></td>
+        <td>Unidad de Red <code>Z:\</code></td>
+        <td>Enlace SMB directo a <code>\\192.168.100.229\Bot_UniversidadOnline</code>.</td>
+        <td>clases.db, grabaciones/, logs_*.txt, registro_errores.json, config.json</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>2. Catálogo de Archivos y Responsabilidades de Módulos</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Archivo / Módulo</th>
+        <th>Lenguaje / Tipo</th>
+        <th>Función Crítica en el Ecosistema</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>main.py</code></td>
+        <td>Python</td>
+        <td>Orquestador central de grabaciones, sincronización con Google Calendar, cola de post-proceso, semáforo de red y retraso de seguridad anti-RAM.</td>
+      </tr>
+      <tr>
+        <td><code>recorder.py</code></td>
+        <td>Python / Playwright</td>
+        <td>Controlador CDP de Chrome en puerto 9222. Maneja aislamiento estricto de pestañas, reproductor de Hotmart, Zoom Web ('David Herbas') y FFmpeg.</td>
+      </tr>
+      <tr>
+        <td><code>vigia_mentorias.py</code></td>
+        <td>Python / Telethon</td>
+        <td>Monitoreo en vivo de llamadas de voz y videochats en canales de Telegram, con detector de inicio de transmisiones.</td>
+      </tr>
+      <tr>
+        <td><code>dashboard_web.py</code></td>
+        <td>Python / Flask</td>
+        <td>Panel de control web en puerto 8000. 4 consolas interactivas plegables, borrado granular (video local vs nube) y administración de mentores.</td>
+      </tr>
+      <tr>
+        <td><code>error_buffer.py</code></td>
+        <td>Python</td>
+        <td>Buffer Offline-First para registro atómico de excepciones e hilo en segundo plano que sincroniza silenciosamente cada 5 minutos hacia la Dell.</td>
+      </tr>
+      <tr>
+        <td><code>database.py</code></td>
+        <td>Python / SQLite</td>
+        <td>Capa de persistencia relacional sobre <code>clases.db</code> con bloqueo de concurrencia y funciones seguras de actualización.</td>
+      </tr>
+      <tr>
+        <td><code>telegram_uploader.py</code></td>
+        <td>Python / Telethon</td>
+        <td>Carga asíncrona de videos MP4 divididos o completos hacia los canales oficiales de Telegram con miniaturas generadas.</td>
+      </tr>
+      <tr>
+        <td><code>notebooklm_bot.py</code></td>
+        <td>Python / Playwright</td>
+        <td>Automatizador de Google NotebookLM para creación de fuentes y generación de podcasts didácticos (Audio Overviews).</td>
+      </tr>
+      <tr>
+        <td><code>route_builder.py</code></td>
+        <td>Python</td>
+        <td>Constructor del mapa interactivo de rutas de aprendizaje y sincronizador con Netlify y GitHub Pages.</td>
+      </tr>
+      <tr>
+        <td><code>1_ENCENDIDO_MAESTRO.bat</code></td>
+        <td>Batch Script</td>
+        <td>Botón maestro de encendido en un clic: mata zombies, verifica dependencias, inicia motores invisibles y lanza Chrome con CDP 9222.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="page-break"></div>
+
+  <h2>3. Reglas de Negocio Inmutables (Cero Regresiones)</h2>
+  <ul>
+    <li><strong>Entrada 5 Minutos Antes:</strong> El orquestador entra 300 segundos antes a la lección para asegurar fotogramas iniciales limpios.</li>
+    <li><strong>Margen Dinámico Posterior de 5 Minutos:</strong> Grabación extendida hasta 300s post-término, reducida a 0 automáticamente si otra clase empieza de inmediato.</li>
+    <li><strong>Semáforo Rojo de Red y CPU:</strong> Prohíbe subidas y tareas pesadas durante una captura activa para erradicar cualquier congelamiento de video.</li>
+    <li><strong>Aislamiento de Pestañas:</strong> Nunca se comparten pestañas entre clases simultáneas; cada una posee un sello identificador <code>window.__clase_id</code>.</li>
+    <li><strong>Salvaguarda Anti-Destrucción:</strong> Ante fallos de remuxing, el video crudo WebM jamás se elimina y se marca como <code>ERROR_REMUXING</code>.</li>
+  </ul>
+
+  <h2>4. Esquema de Base de Datos (clases.db)</h2>
+  <pre><code>CREATE TABLE IF NOT EXISTS clases_grabadas (
+    id_clase TEXT PRIMARY KEY,
+    titulo_original TEXT NOT NULL,
+    fecha_grabacion TEXT,
+    estado TEXT NOT NULL DEFAULT 'PENDIENTE',
+    ruta_archivo TEXT,
+    transversal TEXT,
+    nivel INTEGER DEFAULT 1,
+    duracion_min INTEGER DEFAULT 60,
+    importancia_creacion INTEGER DEFAULT 0,
+    pareto_creacion INTEGER DEFAULT 0,
+    importancia_comercializacion INTEGER DEFAULT 0,
+    pareto_comercializacion INTEGER DEFAULT 0,
+    analisis_json TEXT,
+    notebook_url TEXT,
+    podcast_archivo TEXT,
+    podcast_fecha TEXT,
+    url_hotmart TEXT,
+    telegram_url TEXT,
+    telegram_app_url TEXT,
+    telegram_web_url TEXT,
+    mentor TEXT DEFAULT '',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    regrabacion_activa INTEGER DEFAULT 0
+);</code></pre>
+
+  <div class="page-break"></div>
+
+  <h2>5. Super Prompt Maestro de Restauración Total (Disaster Recovery)</h2>
+  <p>Copia y pega este bloque íntegro en Google Antigravity en caso de pérdida total de archivos o formateo:</p>
+
+  <div class="super-prompt-box">====================================================================================================
+               SUPER PROMPT DE RESTAURACIÓN TOTAL - BOT UNIVERSIDAD ONLINE
+====================================================================================================
+INSTRUCCIÓN PARA ANTIGRAVITY:
+Actúa como el Arquitecto de Software Principal. He perdido mi entorno de desarrollo local y necesito
+que reconstruyas el Sistema Completo del "Bot Universidad Online" exactamente con su arquitectura
+empresarial, modular, resiliente y libre de regresiones.
+
+DIRECTIVAS ARQUITECTÓNICAS CRÍTICAS:
+1. PLATAFORMA Y COMUNICACIÓN:
+   - Laptop Acer (Cliente Operativo: Hotmart, Chrome CDP 9222, Panel Web Flask puerto 8000).
+   - Laptop Dell (Agente Antigravity / IA, IP 192.168.100.243).
+   - Ruta base de trabajo: Carpeta compartida montada (Z:\) o directorio local del bot.
+2. DEPENDENCIAS REQUERIDAS:
+   - Python 3.8+ a 3.12, Flask, Flask-CORS, Playwright (Chromium over CDP), Telethon, requests,
+     pytz, schedule, ffmpeg-python (o ejecutable ffmpeg.exe local).
+3. MÓDULOS OBLIGATORIOS QUE DEBES RECREAR:
+   a) 'error_buffer.py': Sistema de buffer de errores Offline-First. Intercepta excepciones no
+      controladas con sys.excepthook y threading.excepthook, almacena en 'registro_errores.json'
+      [id, timestamp, modulo, error_traceback, estado="Pendiente"], e incluye un hilo demonio que
+      sincroniza silenciosamente cada 5 minutos vía POST a http://192.168.100.243:5005/api/antigravity/sync_errores.
+   b) 'database.py': Gestión completa de SQLite ('clases.db') con tabla 'clases_grabadas'
+      y métodos para consultar pendientes, listar clases, guardar/actualizar estados y normalizar IDs.
+   c) 'main.py': Orquestador concurrente con detección de horarios (-300s entrada anticipada),
+      margen dinámico inteligente, semáforo de Red/CPU (ROJO durante grabación, VERDE al terminar),
+      FileLogger con timestamps [HH:MM:SS] al inicio de cada línea hacia 'logs_orquestador.txt',
+      y cola asíncrona de post-procesamiento.
+   d) 'recorder.py': Motor Playwright conectado vía CDP a http://localhost:9222. Aislamiento estricto
+      de pestañas (una por clase), búsqueda de lección en vivo en Hotmart, manejo de Zoom Web como
+      'David Herbas', grabación con FFmpeg en formato crudo WebM y remuxing a MP4 con salvaguarda anti-destrucción.
+   e) 'vigia_mentorias.py': Monitoreo invisible con Telethon en segundo plano para llamadas de voz
+      y videochats en canales de Telegram, con FileLogger hacia 'logs_vigia.txt'.
+   f) 'telegram_uploader.py': Subida asíncrona de videos pesados a Telegram con miniaturas y captions.
+   g) 'notebooklm_bot.py': Automatización de Google NotebookLM para audios de estudio y podcasts interactivos.
+   h) 'dashboard_web.py': Servidor web Flask en puerto 8000 con diseño oscuro, tabla de clases,
+      borrado granular, y 4 consolas plegables (Orquestador, Vigía, Sistema y Errores e IA) con timestamps
+      alineados en columna a la derecha y botones '📋 Copiar' integrados con navigator.clipboard.
+   i) '1_ENCENDIDO_MAESTRO.bat': Script de encendido en un clic que mata zombies, verifica dependencias,
+      arranca main.py, vigia_mentorias.py y dashboard_web.py en modo fantasma ('pythonw'), y abre
+      Google Chrome con '--remote-debugging-port=9222', perfil 'perfil_chrome', cargando el panel local y Hotmart.
+   j) 'config.json': Configuración de credenciales de Telegram API, canal, webhook de calendar,
+      timezones, tokens de Netlify/GitHub y parámetros de conexión hacia la Dell.
+
+REGLAS DE NEGOCIO:
+- Modo Fantasma: Procesos en segundo plano sin ventanas emergentes de consola.
+- Semáforo de Red: 0% descargas/subidas pesadas mientras haya grabaciones activas.
+- Zero Regressions: Toda la lógica de negocio se preserva íntegra.
+
+Genera cada uno de estos archivos con código limpio, robusto y listo para producción inmediata.
+====================================================================================================</div>
+
+</body>
+</html>

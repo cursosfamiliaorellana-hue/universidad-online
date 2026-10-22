@@ -37,6 +37,7 @@ except ImportError:
         import json
 
 import os
+os.environ["NODE_SKIP_PLATFORM_CHECK"] = "1"
 
 import re
 
@@ -359,136 +360,179 @@ def convertir_url_zoom_a_web(url_zoom: str) -> str:
 
     return re.sub(r"/j/(\d+)", r"/wc/join/\1", url_zoom)
 
-async def buscar_clase_en_hotmart(page: Any, titulo_clase: str) -> Optional[str]:
+def normalizar_texto_busqueda(texto: str) -> str:
+    if not texto:
+        return ""
+    import unicodedata
+    texto = unicodedata.normalize('NFD', texto)
+    texto = ''.join(c for c in texto if unicodedata.category(c) != 'Mn')
+    texto = texto.lower().strip()
+    texto = re.sub(r'[^a-z0-9\s]', ' ', texto)
+    return re.sub(r'\s+', ' ', texto).strip()
 
+SINONIMOS_Y_ALIAS = {
+    "ia": {"ia", "ai", "chatgpt", "gpt", "inteligencia", "artificial", "claude", "gemini", "prompts"},
+    "ai": {"ia", "ai", "chatgpt", "gpt", "inteligencia", "artificial", "claude", "gemini"},
+    "chatgpt": {"chatgpt", "gpt", "ia", "ai", "inteligencia", "artificial"},
+    "kike": {"kike", "quique", "enrique"},
+    "quique": {"quique", "kike", "enrique"},
+    "cadena": {"cadena", "cardenas", "cardena"},
+    "cardenas": {"cardenas", "cadena", "cardena"},
+    "vender": {"vender", "venta", "ventas", "cierre", "cierres"},
+    "ventas": {"ventas", "venta", "vender", "cierre", "cierres"},
+    "cierre": {"cierre", "cierres", "vender", "ventas", "venta"},
+    "pagina": {"pagina", "paginas", "web", "funnel", "landing"},
+    "paginas": {"pagina", "paginas", "web", "funnel", "landing"},
+    "youtube": {"youtube", "yt", "video", "videos"},
+    "lanzamiento": {"lanzamiento", "lanzamientos", "lanzar"},
+    "lanzamientos": {"lanzamientos", "lanzamiento", "lanzar"},
+    "comunidad": {"comunidad", "comunidades", "wemany", "grupo"},
+    "comunidades": {"comunidades", "comunidad", "wemany", "grupo"},
+    "imagenes": {"imagen", "imagenes", "fotos", "foto", "diseno", "canva", "midjourney"},
+    "imagen": {"imagen", "imagenes", "fotos", "foto", "diseno", "canva", "midjourney"},
+    "canva": {"canva", "imagen", "imagenes", "diseno"},
+    "copy": {"copy", "copywriting", "texto", "textos", "redaccion"},
+    "meta": {"meta", "facebook", "fb", "instagram", "ads", "anuncios"},
+    "tiktok": {"tiktok", "tt", "reels", "shorts"},
+    "automatizacion": {"automatizacion", "automatizaciones", "make", "zapier", "n8n", "bot", "chatbots"},
+    "trafico": {"trafico", "pauta", "ads", "anuncios", "campana", "campanas"},
+    "contenido": {"contenido", "contenidos", "reels", "posts"},
+}
+
+STOPWORDS_HOTMART = {"para", "este", "esta", "clase", "masterclass", "con", "por", "sobre", "del", "las", "los", "una", "uno", "que", "how", "the", "and"}
+
+def calcular_similitud_inteligente(titulo_buscado: str, texto_candidato: str) -> tuple:
+    norm_buscado = normalizar_texto_busqueda(titulo_buscado)
+    norm_cand = normalizar_texto_busqueda(texto_candidato)
+    
+    tokens_buscados = [w for w in norm_buscado.split() if w not in STOPWORDS_HOTMART and len(w) >= 2]
+    tokens_cand = [w for w in norm_cand.split() if w not in STOPWORDS_HOTMART]
+    
+    score = 0
+    coincidencias = []
+    
+    for tb in tokens_buscados:
+        grupo_alias = SINONIMOS_Y_ALIAS.get(tb, {tb})
+        matched = False
+        for tc in tokens_cand:
+            if tc in grupo_alias:
+                score += 3
+                coincidencias.append(f"{tb}->{tc}")
+                matched = True
+                break
+        if not matched and len(tb) >= 4:
+            stem_b = tb[:5] if len(tb) >= 5 else tb[:4]
+            for tc in tokens_cand:
+                if len(tc) >= 4 and (tc.startswith(stem_b) or stem_b in tc):
+                    score += 2
+                    coincidencias.append(f"stem:{tb}->{tc}")
+                    matched = True
+                    break
+                    
+    es_en_vivo = any(k in norm_cand for k in ["en vivo", "ao vivo", "live", "directo", "transmision"])
+    tiene_countdown = bool(re.search(r'faltan|empezar|iniciar|minutos|segundos|cuenta\s+regresiva', norm_cand))
+    
+    if es_en_vivo:
+        score += 5
+        coincidencias.append("FLAG_EN_VIVO")
+    if tiene_countdown:
+        score += 4
+        coincidencias.append("FLAG_COUNTDOWN")
+        
+    return score, coincidencias
+
+async def buscar_candidatos_en_hotmart(page: Any, titulo_clase: str) -> List[Dict[str, Any]]:
     if not titulo_clase:
-
-        return None
-
+        return []
     try:
-
-        lecciones = await page.evaluate("""() => {
-
-            return Array.from(document.querySelectorAll('a[href*="/content/"]')).map(a => ({
-
-                text: a.innerText ? a.innerText.replace(/\\s+/g, ' ').trim() : '',
-
-                href: a.href
-
-            })).filter(x => x.text.length > 3);
-
+        raw_items = await page.evaluate("""() => {
+            const list = [];
+            const seen = new Set();
+            
+            // 1. Enlaces a contenidos o lecciones
+            document.querySelectorAll('a[href*="/content/"], a[href*="/lesson"], a[href*="/live"], a[href*="/modules/"]').forEach(a => {
+                const text = (a.innerText || a.getAttribute('title') || a.getAttribute('aria-label') || '').replace(/\\s+/g, ' ').trim();
+                if (text.length > 2 && a.href && !seen.has(a.href)) {
+                    seen.add(a.href);
+                    list.push({ text: text, href: a.href });
+                }
+            });
+            
+            // 2. Tarjetas y elementos interactivos
+            document.querySelectorAll('[class*="live"], [class*="card"], [class*="lesson"], [class*="item"], div[role="button"]').forEach(el => {
+                const text = (el.innerText || '').replace(/\\s+/g, ' ').trim();
+                const a = el.closest('a') || el.querySelector('a');
+                const href = a ? a.href : (el.getAttribute('data-href') || el.getAttribute('href') || '');
+                if (text.length > 3 && href && !seen.has(href)) {
+                    seen.add(href);
+                    list.push({ text: text, href: href });
+                }
+            });
+            return list;
         }""")
+        
+        if not raw_items:
+            return []
+            
+        candidatos = []
+        for item in raw_items:
+            score, matches = calcular_similitud_inteligente(titulo_clase, item["text"])
+            if score >= 3:
+                candidatos.append({
+                    "score": score,
+                    "matches": matches,
+                    "text": item["text"],
+                    "href": item["href"]
+                })
+                
+        candidatos.sort(key=lambda x: x["score"], reverse=True)
+        return candidatos
+    except Exception as e:
+        print(f"[Recorder] Aviso extrayendo candidatos Hotmart: {e}")
+        return []
 
-        if not lecciones:
-
-            return None
-
-        norm_buscado = database.normalizar_id(titulo_clase)
-
-        stopwords = {"gana", "dinero", "como", "para", "este", "esta", "clase", "masterclass", "con", "por", "sobre", "del", "las"}
-
-        palabras_clave = [p for p in norm_buscado.split() if len(p) > 2 and p not in stopwords]
-
-        candidatos_vivo = []
-
-        for l in lecciones:
-
-            norm_l = database.normalizar_id(l["text"])
-
-            es_vivo = "vivo" in norm_l or "live" in norm_l or "🔴" in l["text"]
-
-            coincidencias = sum(1 for w in palabras_clave if w in norm_l)
-
-            if es_vivo and coincidencias > 0:
-
-                candidatos_vivo.append((coincidencias, l))
-
-        if candidatos_vivo:
-
-            candidatos_vivo.sort(key=lambda x: x[0], reverse=True)
-
-            return candidatos_vivo[0][1]["href"]
-
-        candidatos_gen = []
-
-        for l in lecciones:
-
-            norm_l = database.normalizar_id(l["text"])
-
-            coincidencias = sum(1 for w in palabras_clave if w in norm_l)
-
-            if coincidencias > 0:
-
-                candidatos_gen.append((coincidencias, l))
-
-        if candidatos_gen:
-
-            candidatos_gen.sort(key=lambda x: x[0], reverse=True)
-
-            return candidatos_gen[0][1]["href"]
-
-    except Exception:
-
-        pass
-
+async def buscar_clase_en_hotmart(page: Any, titulo_clase: str) -> Optional[str]:
+    candidatos = await buscar_candidatos_en_hotmart(page, titulo_clase)
+    if candidatos:
+        return candidatos[0]["href"]
     return None
 
 async def cerrar_pestana_clase(titulo_clase: str, cdp_url: str = "http://localhost:9222") -> bool:
-
     """Garantiza el cierre físico y limpio de cualquier pestaña asociada a la clase en Chrome vía CDP."""
-
     from playwright.async_api import async_playwright
-
     if not titulo_clase:
-
         return False
-
     try:
-
         async with async_playwright() as p:
-
             browser = None
-
             try:
+                for intento in range(1, 4):
+                    try:
+                        browser = await p.chromium.connect_over_cdp(cdp_url)
+                        if browser and browser.contexts:
+                            break
+                    except Exception:
+                        await asyncio.sleep(1)
 
-                browser = await p.chromium.connect_over_cdp(cdp_url)
-
-                if not browser.contexts:
-
+                if not browser or not browser.contexts:
                     return False
 
                 for page in list(browser.contexts[0].pages):
-
                     try:
-
                         cid = await page.evaluate("() => window.__clase_id")
-
                         if cid == titulo_clase:
-
                             await page.close()
-
                             print(f"[Recorder] 🚪 Pestaña de '{titulo_clase}' cerrada limpiamente.")
-
                     except Exception:
-
                         pass
-
                 return True
-
             finally:
-
                 if browser:
-
                     try:
-
                         await browser.disconnect()
-
                     except Exception:
-
                         pass
-
     except Exception:
-
         return False
 
 async def preparar_reproductor_hotmart(
@@ -510,20 +554,30 @@ async def preparar_reproductor_hotmart(
     enfocar_y_maximizar_chrome()
 
     async with async_playwright() as p:
+        browser = None
+        for intento in range(1, 8):
+            try:
+                browser = await p.chromium.connect_over_cdp(cdp_url)
+                if browser and browser.contexts:
+                    print(f"[Recorder] ✅ Conexión CDP establecida con Chrome en {cdp_url} (intento {intento}).")
+                    break
+            except Exception as e_cdp:
+                if intento < 7:
+                    print(f"[Recorder] ⏳ Esperando a Chrome en {cdp_url} (intento {intento}/7)...")
+                    await asyncio.sleep(2)
+                else:
+                    print(f"[Recorder] ❌ No se pudo conectar a Chrome CDP en {cdp_url} tras 7 intentos: {e_cdp}")
+                    try:
+                        import error_buffer
+                        error_buffer.registrar_error("recorder", f"Error conexión CDP Chrome ({cdp_url}): {e_cdp}. Asegúrate que Chrome esté abierto.", "Pendiente")
+                    except Exception:
+                        pass
+                    return False
 
-        try:
-
-            browser = await p.chromium.connect_over_cdp(cdp_url)
-
-        except Exception:
-
+        if not browser or not browser.contexts:
             return False
 
         contexts = browser.contexts
-
-        if not contexts:
-
-            return False
 
         # 1. Buscar pestaña base de Hotmart (omitiendo pestañas de otras clases activas)
 
@@ -572,10 +626,38 @@ async def preparar_reproductor_hotmart(
                 base_page = contexts[0].pages[0]
 
         url_destino = url_clase
-
-        if not url_destino and titulo_clase:
-
-            url_destino = await buscar_clase_en_hotmart(base_page, titulo_clase)
+        es_url_especifica = bool(url_destino and any(kw in url_destino.lower() for kw in ["/lesson/", "/content/", "/live/"]))
+        candidatos_disponibles = []
+        if (not url_destino or not es_url_especifica) and titulo_clase:
+            print(f"\n🔍 [Buscador Adaptativo Hotmart] Analizando lección para: '{titulo_clase}'...")
+            candidatos_disponibles = await buscar_candidatos_en_hotmart(base_page, titulo_clase)
+            if not candidatos_disponibles:
+                print(f"[Buscador Adaptativo Hotmart] No detectado en vista actual. Recargando Hotmart...")
+                try:
+                    await base_page.reload(wait_until="domcontentloaded", timeout=20000)
+                    await asyncio.sleep(2.5)
+                    candidatos_disponibles = await buscar_candidatos_en_hotmart(base_page, titulo_clase)
+                except Exception as e_rel:
+                    print(f"[Buscador Adaptativo Hotmart] Aviso en recarga: {e_rel}")
+            if candidatos_disponibles:
+                mejor = candidatos_disponibles[0]
+                print(f"🎯 [Buscador Adaptativo Hotmart] Candidato detectado (Score {mejor['score']}): '{mejor['text']}'")
+                print(f"   Coincidencias: {', '.join(mejor['matches'])}")
+                if normalizar_texto_busqueda(titulo_clase) != normalizar_texto_busqueda(mejor['text']):
+                    print(f"⚠️ [ALERTA DISCREPANCIA] El título en Hotmart difiere del cronograma.")
+                    try:
+                        import error_buffer
+                        error_buffer.registrar_error("orquestador", f"Discrepancia resuelta en Hotmart: Detectada '{mejor['text']}' para programada '{titulo_clase}'. Buscador adaptativo conectado.", "Enviado")
+                    except Exception:
+                        pass
+                url_destino = mejor["href"]
+            else:
+                print(f"🚨 [ALERTA DISCREPANCIA] No se localizó lección ni transmisión En Vivo en Hotmart para '{titulo_clase}'.")
+                try:
+                    import error_buffer
+                    error_buffer.registrar_error("orquestador", f"CRÍTICO: No se localizó lección en vivo para '{titulo_clase}' en Hotmart Club. Título en plataforma difiere o aún no fue publicada.", "Pendiente")
+                except Exception:
+                    pass
 
         # 2. AISLAMIENTO ESTRICTO DE PESTAÑAS (MÁXIMO UNA pestaña por clase)
 
@@ -602,28 +684,34 @@ async def preparar_reproductor_hotmart(
                 pass
 
         if paginas_existentes:
-
             target_page = paginas_existentes[0]
-
             # Si hubiese pestañas duplicadas de intentos anteriores, aniquilar clones
-
             for sobrante in paginas_existentes[1:]:
-
                 try:
-
                     await sobrante.close()
-
                 except Exception:
-
                     pass
-
             print(f"[Recorder] 🔄 Reutilizando pestaña única aislada para '{titulo_clase}'.")
-
         else:
+            # Comprobar si ya existe alguna pestaña de lección abierta antes de crear una nueva
+            for page in list(contexts[0].pages):
+                try:
+                    if "/lesson/" in page.url or "/content/" in page.url or "/live/" in page.url:
+                        target_page = page
+                        print(f"[Recorder] 🔄 Pestaña activa de lección detectada en Chrome. Reutilizando para '{titulo_clase}'.")
+                        break
+                except Exception:
+                    pass
+            if not target_page:
+                target_page = await contexts[0].new_page()
+                print(f"[Recorder] 📑 Abriendo nueva pestaña dedicada y aislada para '{titulo_clase}'.")
 
-            target_page = await contexts[0].new_page()
-
-            print(f"[Recorder] 📑 Abriendo nueva pestaña dedicada y aislada para '{titulo_clase}'.")
+        # Inyectar de inmediato el Sello de Identidad para blindar contra duplicados concurrentes
+        if titulo_clase:
+            try:
+                await target_page.evaluate("(t) => { window.__clase_id = t; }", titulo_clase)
+            except Exception:
+                pass
 
         if url_destino and target_page.url != url_destino:
 
@@ -772,17 +860,20 @@ async def grabar_stream_hotmart(
             pass
 
     async with async_playwright() as p:
+        browser = None
+        for intento in range(1, 8):
+            try:
+                browser = await p.chromium.connect_over_cdp(cdp_url)
+                if browser and browser.contexts:
+                    break
+            except Exception as e_cdp:
+                if intento < 7:
+                    await asyncio.sleep(2)
+                else:
+                    print(f"[Recorder] ❌ Error conectando CDP en grabar_stream_hotmart tras 7 intentos: {e_cdp}")
+                    return False
 
-        try:
-
-            browser = await p.chromium.connect_over_cdp(cdp_url)
-
-        except Exception:
-
-            return False
-
-        if not browser.contexts:
-
+        if not browser or not browser.contexts:
             return False
 
         # 1. Encontrar la pestaña correcta usando el Sello de Identidad
@@ -830,19 +921,16 @@ async def grabar_stream_hotmart(
                     Object.defineProperty(document, 'visibilityState', { value: 'visible', writable: true });
 
                     if (!window.__bgKeepAlive) {
-
                         window.__bgKeepAlive = setInterval(() => {
-
                             const v = document.querySelector('video');
-
-                            if (v && v.paused && v.readyState >= 3) {
-
+                            if (v && v.paused) {
+                                v.muted = false;
+                                v.volume = 1.0;
                                 v.play().catch(()=>{});
-
+                                const pb = document.querySelector('button[aria-label*="Play" i], .vjs-big-play-button, .vjs-play-control, [data-testid="play-button"], button.play-button');
+                                if (pb) pb.click();
                             }
-
-                        }, 2000);
-
+                        }, 1000);
                     }
 
                 }""")
@@ -932,6 +1020,16 @@ async def grabar_stream_hotmart(
             if video_locator:
 
                 break
+
+            # Si llevamos esperando varios intentos y la página de Hotmart aún no muestra el video porque la transmisión en vivo aún no fue iniciada por el docente,
+            # refrescar periódicamente (cada 60s = 30 intentos de 2s) para actualizar el estado del reproductor del livestream
+            if intento > 0 and intento % 30 == 0:
+                print(f"[Recorder] 🔄 Francotirador: verificando actualización de transmisión en vivo (intento {intento}/450)...")
+                try:
+                    await target_page.reload(wait_until="domcontentloaded", timeout=15000)
+                    await asyncio.sleep(2)
+                except Exception:
+                    pass
 
             await asyncio.sleep(2)
 
@@ -1210,14 +1308,19 @@ async def grabar_stream_hotmart(
 
                             estado_stream = {"ok": False, "motivo": "NO_VIDEO", "hasErrorUI": False, "readyState": 0}
 
-                        # Verificar si en la ventana principal hay pantalla explicita de error/desconexion
+                        # Verificar si en la ventana principal hay pantalla explícita de error crítico de red/desconexión
                         has_top_error = False
 
                         try:
 
                             has_top_error = await target_page.evaluate("""() => {
 
-                                const sel = ['.error-screen', '.hotmart-player-error', '[class*="connection-error"]', '.offline-screen', '.no-connection'];
+                                // 1. Pantallas nativas de error de red o caída de pestaña de Chromium / Chrome
+                                if (document.querySelector('#main-frame-error, .neterror, #main-message, [jscontent="failedUrl"]')) return true;
+                                if (document.title.includes('No se puede acceder') || document.title.includes('ERR_') || window.location.href.startsWith('chrome-error://')) return true;
+
+                                // 2. Pantallas de error fatal o desconexión del reproductor de Hotmart Club
+                                const sel = ['.error-screen', '.hotmart-player-error', '[class*="connection-error"]', '.offline-screen', '.no-connection', '[data-testid="error-screen"]'];
 
                                 for (const s of sel) {
 
@@ -1233,12 +1336,48 @@ async def grabar_stream_hotmart(
 
                         except Exception:
 
-                            pass
+                            has_top_error = False
 
-                        # Indicador de flujo activo (si llegaron chunks WebM en los ultimos 6s)
+                        # Si el video se pone en pausa, NUNCA recargar la página: Forzar Play inmediatamente
+                        if estado_stream.get("paused"):
+
+                            try:
+
+                                await target_page.evaluate("""() => {
+
+                                    const v = document.querySelector('video');
+
+                                    if (v) {
+
+                                        v.muted = false;
+
+                                        v.volume = 1.0;
+
+                                        const p = v.play();
+
+                                        if (p) p.catch(()=>{});
+
+                                    }
+
+                                    const pb = document.querySelector('button[aria-label*="Play" i], .vjs-big-play-button, .vjs-play-control, [data-testid="play-button"], button.play-button');
+
+                                    if (pb) pb.click();
+
+                                }""")
+
+                            except Exception:
+
+                                pass
+
+                            # Un estado de pausa atendido con Play activo nunca debe computar como cuelgue
+                            segundos_congelado = 0
+
+                        # Indicador de flujo activo (si llegaron chunks WebM en los últimos 6s)
                         grabando_activo = (time.time() - t_ultimo_chunk <= 6)
 
-                        # Analisis de estabilidad
+                        # Análisis de estabilidad:
+                        # La recarga de rescate SÓLO se permite si hay pantalla de error/desconexión fatal persistente,
+                        # NUNCA por una simple pausa o silencio del stream.
                         if has_top_error or estado_stream.get("hasErrorUI") or estado_stream.get("motivo") in ('MEDIA_ERROR', 'TRACKS_ENDED'):
 
                             segundos_congelado += 3
@@ -1263,23 +1402,24 @@ async def grabar_stream_hotmart(
 
                             elif grabando_activo:
 
-                                # Chunks WebM estan fluyendo activamente a disco: el stream esta 100% vivo
+                                # Chunks WebM están fluyendo activamente a disco: el stream está 100% vivo y capturando
                                 segundos_congelado = 0
 
-                            elif estado_stream.get("paused") or estado_stream.get("readyState", 0) < 2:
+                            elif estado_stream.get("paused"):
 
-                                if time.time() - t_ultimo_avance > 20:
-
-                                    segundos_congelado += 3
+                                # Reanudación ya ejecutada arriba
+                                segundos_congelado = 0
 
                             else:
 
-                                segundos_congelado = max(0, segundos_congelado - 3)
+                                segundos_congelado = max(0, segundos_congelado - 1)
 
-                        # Si el cuelgue persiste por mas de 30 segundos continuos: Auto-recuperacion via page.reload()
-                        if segundos_congelado >= 30:
+                        # Si una pantalla de desconexión o error crítico persiste por más de 60 segundos continuos:
+                        # Auto-recuperación vía page.reload()
+                        if segundos_congelado >= 60:
 
-                            print(f"\n[Recorder] ⚠️ ¡Cuelgue del stream de Hotmart detectado ({estado_stream.get('motivo', 'Freeze')})! Ejecutando page.reload() automático...")
+                            print(f"\n[Recorder] ⚠️ ¡Pantalla de desconexión o error crítico persistente detectada ({estado_stream.get('motivo', 'Crash')})! Ejecutando page.reload() de rescate...")
+                            segundos_congelado = 0
 
                             
 
@@ -2618,6 +2758,12 @@ async def grabar_clase_completa(
                 print(f"\n[Recorder] 🛡️ [SALVAGUARDA ANTI-DESTRUCCIÓN] Grabación preservada en formato crudo: {ultimo_webm}")
                 database.guardar_o_actualizar_clase(id_clase=id_clase, titulo_original=titulo, estado="ERROR_REMUXING", ruta_archivo=ultimo_webm, duracion_min=duracion_min)
                 return ultimo_webm
+
+        try:
+            import error_buffer
+            error_buffer.registrar_error("recorder", f"No se pudo enganchar al video de Chrome o falló la grabación: '{titulo}'", "Pendiente")
+        except Exception:
+            pass
 
         print("\n[Recorder] ❌ El bot no pudo engancharse al video de Chrome o falló la grabación. Abortando y cerrando pestaña aislada...")
 

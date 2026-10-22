@@ -8,6 +8,7 @@ import asyncio
 import datetime
 import json
 import os
+os.environ["NODE_SKIP_PLATFORM_CHECK"] = "1"
 import re
 import subprocess
 import sys

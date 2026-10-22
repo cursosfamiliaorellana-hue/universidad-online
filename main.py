@@ -34,6 +34,7 @@ except ImportError:
         import json
 
 import os
+os.environ["NODE_SKIP_PLATFORM_CHECK"] = "1"
 
 import re
 
@@ -47,44 +48,7 @@ import time
 
 from typing import Optional, Dict, Any, List, Tuple
 
-if sys.platform == "win32":
-
-    try:
-
-        sys.stdout.reconfigure(encoding="utf-8")
-
-        sys.stderr.reconfigure(encoding="utf-8")
-
-    except Exception:
-
-        pass
-
-import pytz
-
-import requests
-
-import schedule
-
-import ai_analyzer
-
-import calendar_sync
-
-import database
-
-import notebooklm_bot
-
-import recorder
-
-import route_builder
-
-import scraper
-
-import telegram_uploader
-
-import visual_generator
-
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
 LOG_ORQUESTADOR_PATH = os.path.join(BASE_DIR, "logs_orquestador.txt")
 
 class FileLogger:
@@ -94,6 +58,7 @@ class FileLogger:
     def __init__(self, filename, original_stream=None):
         self.filename = filename
         self.original_stream = original_stream
+        self._at_line_start = True
 
     def write(self, message):
         try:
@@ -117,8 +82,28 @@ class FileLogger:
                         self.original_stream.flush()
                     except Exception:
                         pass
+
+            ts_actual = datetime.datetime.now().strftime("[%H:%M:%S] ")
+            partes = msg_str.split("\n")
+            lineas_formateadas = []
+            for i, parte in enumerate(partes):
+                if i == len(partes) - 1 and parte == "":
+                    continue
+                if self._at_line_start and parte.strip():
+                    if not (parte.startswith("[") and any(sep in parte[:25] for sep in (":", "--", "2026-"))):
+                        parte = ts_actual + parte
+                lineas_formateadas.append(parte)
+                self._at_line_start = True
+
+            texto_para_archivo = "\n".join(lineas_formateadas)
+            if msg_str.endswith("\n"):
+                texto_para_archivo += "\n"
+                self._at_line_start = True
+            else:
+                self._at_line_start = False
+
             with open(self.filename, "a", encoding="utf-8", errors="replace") as f:
-                f.write(msg_str)
+                f.write(texto_para_archivo)
         except Exception:
             pass
 
@@ -140,14 +125,73 @@ except Exception:
 sys.stdout = FileLogger(LOG_ORQUESTADOR_PATH, sys.stdout)
 sys.stderr = FileLogger(LOG_ORQUESTADOR_PATH, sys.stderr)
 
+import error_buffer
+error_buffer.instalar_manejador_global("orquestador")
+
+def actualizar_heartbeat(estado="INICIANDO"):
+    try:
+        hb_path = os.path.join(BASE_DIR, "heartbeat_orquestador.json")
+        with open(hb_path, "w", encoding="utf-8") as f_hb:
+            json.dump({"timestamp": time.time(), "estado": estado, "pid": os.getpid()}, f_hb)
+    except Exception:
+        pass
+
+def _asegurar_entorno_completo():
+    actualizar_heartbeat("COMPROBANDO_DEPENDENCIAS")
+    try:
+        import playwright
+        pw_ver = ""
+        try:
+            import importlib.metadata
+            pw_ver = importlib.metadata.version("playwright")
+        except Exception:
+            try:
+                import pkg_resources
+                pw_ver = pkg_resources.get_distribution("playwright").version
+            except Exception:
+                pw_ver = getattr(playwright, "__version__", "")
+
+        if pw_ver and (pw_ver == "1.28.0" or pw_ver.startswith("1.28.")):
+            pass
+        elif pw_ver != "1.28.0":
+            print(f"[Auto-Sanación] Versión actual de Playwright ({pw_ver or 'desconocida'}) usa Node incompatible con Windows 8. Instalando v1.28.0 (Node 16)...")
+            cmd = [sys.executable, "-m", "pip", "install", "--prefer-binary", "playwright==1.28.0"]
+            res_p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=180, text=True)
+            print(f"[Auto-Sanación Pip 1.28]:\n{res_p.stdout[-400:]}")
+        import telethon
+        import bs4
+        import requests
+        import schedule
+        import pytz
+    except ImportError as e_imp:
+        try:
+            print(f"[Auto-Sanación] Reinstalando Playwright compatible con Windows 8 (v1.28.0)... ({e_imp})")
+            cmd = [sys.executable, "-m", "pip", "install", "--prefer-binary", "playwright==1.28.0"]
+            res_p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=180, text=True)
+            print(f"[Auto-Sanación Pip 1.28]:\n{res_p.stdout[-400:]}")
+        except Exception as e_pip:
+            print(f"[Auto-Sanación] Error instalando dependencias: {e_pip}")
+
+_asegurar_entorno_completo()
+actualizar_heartbeat("INICIADO")
+
+import pytz
+import requests
+import schedule
+import ai_analyzer
+import calendar_sync
+import database
+import notebooklm_bot
+import recorder
+import route_builder
+import scraper
+import telegram_uploader
+import visual_generator
+
 CONFIG_FILE = os.path.join(BASE_DIR, "config.json")
-
 FFMPEG_EXE = os.path.join(BASE_DIR, "ffmpeg.exe")
-
 DB_FILE = getattr(database, "DB_FILE", getattr(database, "DB_PATH", os.path.join(BASE_DIR, "clases.db")))
-
 COLA_POST_PROCESO = None
-
 CLASES_EN_EJECUCION = set()
 
 COOLDOWN_REINTENTOS: Dict[str, float] = {}
@@ -409,7 +453,7 @@ def obtener_pendientes_desde_sqlite() -> List[Dict[str, Any]]:
 
         cur = conn.cursor()
 
-        cur.execute("SELECT * FROM clases_grabadas WHERE estado = 'PENDIENTE'")
+        cur.execute("SELECT * FROM clases_grabadas WHERE (estado IN ('PENDIENTE', 'GRABANDO', 'ERROR') OR regrabacion_activa = 1) AND estado NOT IN ('COMPLETADA', 'SUBIDO', 'CANCELADA')")
 
         filas = cur.fetchall()
 
@@ -711,13 +755,7 @@ async def procesar_flujo_clase(
     cfg = config or cargar_config()
 
     id_clase = clase_info["id_clase"]
-
-    if id_clase in CLASES_EN_EJECUCION:
-
-        return False
-
     CLASES_EN_EJECUCION.add(id_clase)
-
     try:
 
         titulo = clase_info["titulo_original"]
@@ -902,29 +940,36 @@ async def procesar_flujo_clase(
                     ruta_video = ultimo_webm
 
         if not ruta_video or not os.path.exists(ruta_video):
-
             print(f"[!] Grabación fallida o abortada para '{titulo}'.")
+            try:
+                error_buffer.registrar_error("orquestador", f"Grabación fallida o abortada para '{titulo}'. Reintentando de forma segura.", "Pendiente")
+            except Exception:
+                pass
+
+            database.guardar_o_actualizar_clase(id_clase=id_clase, titulo_original=titulo, estado="PENDIENTE")
 
             ahora_ts = time.time()
+            en_vivo_ahora = False
+            try:
+                dt_ini_c = datetime.datetime.fromisoformat(cal_inicio_iso)
+                dt_fin_c = datetime.datetime.fromisoformat(cal_fin_iso)
+                if dt_ini_c <= datetime.datetime.now(dt_ini_c.tzinfo) <= dt_fin_c:
+                    en_vivo_ahora = True
+            except Exception:
+                pass
 
-            COOLDOWN_REINTENTOS[id_clase] = ahora_ts + DELAY_REINTENTO_FALLO_SEGUNDOS
-
-            dt_reintento = datetime.datetime.fromtimestamp(ahora_ts + DELAY_REINTENTO_FALLO_SEGUNDOS)
-
+            delay_aplicar = 30 if (es_regrabacion or en_vivo_ahora) else DELAY_REINTENTO_FALLO_SEGUNDOS
+            COOLDOWN_REINTENTOS[id_clase] = ahora_ts + delay_aplicar
+            dt_reintento = datetime.datetime.fromtimestamp(ahora_ts + delay_aplicar)
+            minutos_txt = f"{delay_aplicar} segundos" if delay_aplicar < 60 else f"{delay_aplicar // 60} minutos"
             print(
-
                 f"[Orquestador] 🛡️ Delay de seguridad activado para '{titulo}': "
-
-                f"Próximo reintento no antes de las {dt_reintento.strftime('%H:%M:%S')} (10 minutos) para evitar inundar RAM."
-
+                f"Próximo reintento a las {dt_reintento.strftime('%H:%M:%S')} ({minutos_txt})."
             )
 
             try:
-
                 await recorder.cerrar_pestana_clase(titulo)
-
             except Exception:
-
                 pass
 
             return False
@@ -959,6 +1004,11 @@ async def procesar_flujo_clase(
     except Exception as e_flujo:
         print(f"\n[Orquestador] ⚠️ Error en flujo de grabación de '{titulo}': {e_flujo}")
         recorder.registrar_log_ffmpeg(f"ERROR EN FLUJO DE GRABACION '{titulo}': {e_flujo}")
+        try:
+            import error_buffer
+            error_buffer.registrar_error("orquestador", f"Error en flujo de grabación '{titulo}': {e_flujo}", "Pendiente")
+        except Exception:
+            pass
         try:
             database.guardar_o_actualizar_clase(id_clase=id_clase, titulo_original=titulo, estado="ERROR")
         except Exception:
@@ -1023,28 +1073,22 @@ async def procesar_ciclo_grabacion(clases_calendario: List[Dict[str, Any]]) -> N
             continue
 
         # COMPROBACIÓN DE DELAY DE SEGURIDAD (Evita bucle infinito de pestañas si falla/aborta)
-
         ahora_ts = time.time()
-
+        es_regrab_solicitada = bool(c.get("regrabacion_activa") == 1)
         proximo_reintento = COOLDOWN_REINTENTOS.get(id_clase, 0)
-
-        if ahora_ts < proximo_reintento:
-
+        if not es_regrab_solicitada and ahora_ts < proximo_reintento:
             continue
 
         try:
-
             dt_inicio = datetime.datetime.fromisoformat(c["inicio_iso"])
-
             dt_fin = datetime.datetime.fromisoformat(c["fin_iso"])
-
         except Exception:
-
             continue
 
         tiempo_para_inicio = (dt_inicio - ahora).total_seconds()
 
-        if -300 <= tiempo_para_inicio <= 300 or (dt_inicio <= ahora <= dt_fin):
+        # Margen de anticipación ampliado a 10 minutos (600s) o disparo inmediato si se solicitó re-grabación
+        if es_regrab_solicitada or (-900 <= tiempo_para_inicio <= 600) or (dt_inicio <= ahora <= dt_fin):
 
             margen_dinamico = 5
 
@@ -1070,10 +1114,9 @@ async def procesar_ciclo_grabacion(clases_calendario: List[Dict[str, Any]]) -> N
 
                         pass
 
-            print(f"\n🎯 [Orquestador] Horario alcanzado para: '{c['titulo_original']}'")
-
+            print(f"\n🚀 [Orquestador] Horario alcanzado para: '{c['titulo_original']}' (Anticipación: {int(tiempo_para_inicio)}s)")
+            CLASES_EN_EJECUCION.add(id_clase)
             asyncio.create_task(procesar_flujo_clase(c, duracion_segundos=None, config=cfg, margen_extra_minutos=margen_dinamico))
-
             await asyncio.sleep(2)
 
 async def bucle_principal():
@@ -1094,15 +1137,33 @@ async def bucle_principal():
 
     asyncio.create_task(worker_post_proceso())
 
+    actualizar_heartbeat("SINCRONIZANDO")
     clases_detectadas = sincronizar_calendario_y_bd()
+    actualizar_heartbeat("ESCUCHANDO")
 
     schedule.every(6).hours.do(sincronizar_calendario_y_bd)
 
     ts_ultimo_escaneo_vacio = 0
+    ts_ultimo_latido = 0
+    HEARTBEAT_PATH = os.path.join(BASE_DIR, "heartbeat_orquestador.json")
 
     while True:
-
         try:
+            if os.path.exists(os.path.join(BASE_DIR, "REINICIAR_ORQUESTADOR.txt")):
+                print("[Orquestador] 🔄 Señal de reinicio recibida. Reiniciando proceso orquestador...")
+                try:
+                    os.remove(os.path.join(BASE_DIR, "REINICIAR_ORQUESTADOR.txt"))
+                except Exception:
+                    pass
+                sys.exit(0)
+
+            ahora_ts = time.time()
+            actualizar_heartbeat("GRABANDO" if GRABACION_EN_CURSO else "ESCUCHANDO")
+
+            if ahora_ts - ts_ultimo_latido >= 60:
+                ts_ultimo_latido = ahora_ts
+                if not GRABACION_EN_CURSO:
+                    print(f"[{datetime.datetime.now().strftime('%H:%M:%S')}] [Orquestador] ⏱️ Vigía activo. Escaneando cronograma en segundo plano (Ultra-Bajo CPU)...")
 
             schedule.run_pending()
 
@@ -1188,7 +1249,7 @@ async def bucle_principal():
 
         try:
 
-            await asyncio.sleep(60)
+            await asyncio.sleep(10)
 
         except KeyboardInterrupt:
 

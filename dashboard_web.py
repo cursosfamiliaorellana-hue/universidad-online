@@ -21,9 +21,11 @@ except ImportError:
     except ImportError:
         import json
 import os
+os.environ["NODE_SKIP_PLATFORM_CHECK"] = "1"
 import re
 import shutil
 import sqlite3
+import subprocess
 import sys
 import threading
 import time
@@ -73,6 +75,12 @@ except Exception as e_imp:
 
 import database
 import route_builder
+import error_buffer
+
+# Instalar manejador global de excepciones para dashboard
+error_buffer.instalar_manejador_global("dashboard")
+# Iniciar hilo en segundo plano para sincronizar errores cada 5 minutos hacia la laptop Dell
+error_buffer.iniciar_hilo_sincronizacion_background(intervalo_segundos=300)
 
 try:
     import pytz
@@ -183,6 +191,9 @@ except Exception:
 registrar_log_sistema("Dashboard Web Activo en http://127.0.0.1:8000 (Modo Fantasma & Responsive)", "INFO")
 
 
+RE_TIMESTAMP_LINEA = re.compile(r"^\[?(?:(\d{4}-\d{2}-\d{2})[T\s]+)?(\d{2}:\d{2}:\d{2})\]?\s*(.*)$")
+
+
 def leer_ultimas_lineas_archivo(ruta: str, max_lineas: int = 150) -> List[Dict[str, str]]:
     if not os.path.exists(ruta):
         return [{"timestamp": "--:--:--", "mensaje": "[Log no iniciado aún]", "nivel": "INFO"}]
@@ -195,11 +206,17 @@ def leer_ultimas_lineas_archivo(ruta: str, max_lineas: int = 150) -> List[Dict[s
             if not txt:
                 continue
             ts = "--:--:--"
-            if txt.startswith("[") and "]" in txt:
-                partes = txt.split("]", 2)
-                ts = partes[0].replace("[", "")
-            lvl = "ERROR" if "[!]" in txt or "error" in txt.lower() else ("SUCCESS" if "✅" in txt or "éxito" in txt.lower() else "INFO")
-            resultado.append({"timestamp": ts, "mensaje": txt, "nivel": lvl})
+            msg = txt
+            m = RE_TIMESTAMP_LINEA.match(txt)
+            if m:
+                ts = m.group(2)
+                resto = m.group(3).strip()
+                if resto:
+                    msg = resto
+            lvl = "ERROR" if "[!]" in msg or "❌" in msg or "error" in msg.lower() or "falló" in msg.lower() else (
+                "SUCCESS" if "✅" in msg or "éxito" in msg.lower() or "finalizada" in msg.lower() else "INFO"
+            )
+            resultado.append({"timestamp": ts, "mensaje": msg, "nivel": lvl})
         return resultado
     except Exception as e:
         return [{"timestamp": "--:--:--", "mensaje": f"Error leyendo {os.path.basename(ruta)}: {e}", "nivel": "ERROR"}]
@@ -442,6 +459,83 @@ DASHBOARD_HTML = """<!DOCTYPE html>
       border-radius: 6px;
     }
 
+    /* Contenedores Desplegables de Cronograma e Historial */
+    .cronograma-box {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 24px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+      transition: all 0.2s ease;
+    }
+    .cronograma-box summary {
+      padding: 14px 18px;
+      background: #0e1526;
+      font-weight: 700;
+      font-size: 14px;
+      color: #f1f5f9;
+      cursor: pointer;
+      user-select: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid transparent;
+      transition: background 0.15s;
+    }
+    .cronograma-box[open] summary {
+      border-bottom: 1px solid var(--card-border);
+      background: #111a30;
+    }
+    .cronograma-box summary:hover {
+      background: #15223e;
+      color: #38bdf8;
+    }
+    .cronograma-body {
+      padding: 16px;
+      background: #070b14;
+    }
+    .badge-pill {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 20px;
+      letter-spacing: 0.3px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
+    }
+    .pill-cyan { background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); }
+    .pill-purple { background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3); }
+    .pill-success { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .pill-warning { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+    .pill-primary { background: rgba(2, 132, 199, 0.15); color: #7dd3fc; border: 1px solid rgba(2, 132, 199, 0.3); }
+    .pill-danger { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+    .badge-tipo {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
+      display: inline-block;
+      white-space: nowrap;
+    }
+    .tipo-masterclass { background: rgba(2, 132, 199, 0.2); color: #38bdf8; border: 1px solid rgba(2, 132, 199, 0.4); }
+    .tipo-mentoria { background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4); }
+    .rango-horario-badge {
+      font-family: 'JetBrains Mono', Consolas, monospace;
+      font-size: 12px;
+      font-weight: 700;
+      color: #f8fafc;
+      background: #0f172a;
+      padding: 3px 6px;
+      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      display: inline-block;
+      white-space: nowrap;
+    }
+
     /* Consolas Virtuales Plegables (<details>/<summary>) */
     .consoles-section {
       display: flex;
@@ -502,12 +596,44 @@ DASHBOARD_HTML = """<!DOCTYPE html>
       flex-direction: column;
       gap: 3px;
     }
-    .log-row { display: flex; gap: 8px; line-height: 1.4; word-break: break-word; }
-    .log-time { color: #64748b; flex-shrink: 0; }
+    .log-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+      line-height: 1.4;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+      padding: 2px 0;
+    }
+    .log-msg {
+      flex: 1 1 auto;
+      word-break: break-word;
+    }
+    .log-time {
+      color: #64748b;
+      flex: 0 0 auto;
+      font-family: monospace;
+      font-size: 11px;
+      text-align: right;
+      padding-left: 8px;
+      white-space: nowrap;
+    }
     .log-lvl-INFO { color: #38bdf8; }
     .log-lvl-SUCCESS { color: #34d399; }
     .log-lvl-ERROR { color: #f87171; }
     .log-lvl-WARN { color: #fbbf24; }
+    .badge-err-estado {
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      margin-right: 6px;
+      display: inline-block;
+    }
+    .badge-err-Pendiente { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); }
+    .badge-err-Enviado { background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); }
+    .badge-err-Resuelto { background: rgba(52, 211, 153, 0.2); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.4); }
 
     /* Modales */
     .modal-backdrop {
@@ -558,7 +684,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
     </div>
     <div class="status-badges-group">
       <div class="badge-status">
-        <span class="pulse-dot"></span> Orquestador Activo (8000)
+        <span id="badge-orquestador" class="badge-status badge-success"><span class="pulse-dot"></span> 🟢 Orquestador Activo</span>
       </div>
       <div class="badge-status" id="badge-vigia">
         <span class="pulse-dot"></span> Vigía Activo
@@ -581,7 +707,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
 
   <!-- KPIs Operativos -->
   <div class="kpi-grid">
-    <div class="kpi-card" onclick="cargarDatos()" style="cursor: pointer;" title="Clic para ver todas las clases">
+    <div class="kpi-card" onclick="abrirHistorialTotal()" style="cursor: pointer;" title="Clic para ver todas las clases">
       <div class="kpi-label">TOTAL CLASES</div>
       <div class="kpi-value" id="kpi-total">0</div>
     </div>
@@ -603,33 +729,90 @@ DASHBOARD_HTML = """<!DOCTYPE html>
     </div>
   </div>
 
-  <!-- Controles de Filtro -->
-  <div class="controls-bar">
-    <input type="text" class="search-box" id="filtroTexto" placeholder="🔍 Buscar por título, mentor o ID..." oninput="filtrarTabla()">
-    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-      <button class="btn btn-warning" onclick="filtrarHoy()">📅 Ver Cronograma de Hoy / Pendientes</button>
-      <button class="btn" onclick="cargarDatos()">🔄 Ver Todas / Refrescar</button>
+  <!-- APARTADO DESPLEGABLE 1: CRONOGRAMA DE HOY Y MAÑANA -->
+  <details class="cronograma-box" id="sec-cronograma-hoy-manana" open>
+    <summary>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="font-size: 16px;">📅</span>
+        <span style="font-weight: 700; font-size: 14px; color: #f8fafc;">Cronograma de Clases: Hoy y Mañana</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+        <span class="badge-pill pill-cyan" id="badge-total-hoy-manana">0 Clases Programadas</span>
+        <span class="badge-pill pill-warning" id="badge-pendientes-hoy">0 Pendientes</span>
+      </div>
+    </summary>
+    <div class="cronograma-body">
+      <div class="table-container" style="margin-bottom: 0;">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 140px;">Día / Fecha</th>
+              <th style="width: 190px;">Horario & Duración</th>
+              <th style="width: 120px;">Tipo</th>
+              <th>Título de la Clase</th>
+              <th>Mentor / Transversal</th>
+              <th style="width: 130px;">Estado</th>
+              <th style="width: 160px;">Acciones Rápidas</th>
+            </tr>
+          </thead>
+          <tbody id="tabla-hoy-manana">
+            <tr><td colspan="7" style="text-align: center; color: #64748b; padding: 24px;">Cargando cronograma de hoy y mañana...</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
-  </div>
+  </details>
 
-  <!-- Tabla de Clases -->
-  <div class="table-container">
-    <table>
-      <thead>
-        <tr>
-          <th>Fecha / ID</th>
-          <th>Título de la Masterclass</th>
-          <th>Mentor / Transversal</th>
-          <th>Estado</th>
-          <th>Enlaces</th>
-          <th>Acciones de Control & Borrado Granular</th>
-        </tr>
-      </thead>
-      <tbody id="tabla-clases">
-        <tr><td colspan="6" style="text-align: center; color: #64748b; padding: 24px;">Cargando clases registradas...</td></tr>
-      </tbody>
-    </table>
-  </div>
+  <!-- APARTADO DESPLEGABLE 2: HISTORIAL GENERAL DE CLASES -->
+  <details class="cronograma-box" id="sec-historico-clases" open>
+    <summary>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="font-size: 16px;">📚</span>
+        <span style="font-weight: 700; font-size: 14px; color: #f8fafc;">Historial General de Clases Grabadas (Masterclasses y Mentorías)</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+        <span class="badge-pill pill-primary" id="badge-hist-total">Total: 0</span>
+        <span class="badge-pill pill-cyan" id="badge-hist-masterclasses">🎓 0 Masterclasses</span>
+        <span class="badge-pill pill-purple" id="badge-hist-mentorias">🎙️ 0 Mentorías</span>
+        <span class="badge-pill pill-success" id="badge-hist-completadas">✅ 0 Completadas</span>
+      </div>
+    </summary>
+    <div class="cronograma-body">
+      <!-- Controles de Filtro y Búsqueda -->
+      <div class="controls-bar" style="margin-bottom: 14px;">
+        <input type="text" class="search-box" id="filtroTexto" placeholder="🔍 Buscar por título, mentor, transversal o ID..." oninput="filtrarTabla()">
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <button class="btn action-btn-sm" onclick="filtrarTipo('TODAS')">Ver Todas</button>
+          <button class="btn btn-primary action-btn-sm" onclick="filtrarTipo('MASTERCLASS')">🎓 Solo Masterclasses</button>
+          <button class="btn btn-purple action-btn-sm" onclick="filtrarTipo('MENTORIA')">🎙️ Solo Mentorías</button>
+          <button class="btn btn-success action-btn-sm" onclick="filtrarPorEstado('COMPLETADA')">✅ Completadas</button>
+          <button class="btn btn-warning action-btn-sm" onclick="filtrarPorEstado('PENDIENTE')">🟡 Pendientes</button>
+          <button class="btn btn-danger action-btn-sm" onclick="filtrarPorEstado('GRABANDO')">🔴 Grabando</button>
+          <button class="btn btn-warning action-btn-sm" onclick="filtrarHistorialHoy()">📅 Clases de Hoy</button>
+          <button class="btn action-btn-sm" onclick="cargarDatos()">🔄 Refrescar</button>
+        </div>
+      </div>
+
+      <!-- Tabla Historial Completa -->
+      <div class="table-container" style="margin-bottom: 0;">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 180px;">Fecha / Horario / ID</th>
+              <th>Título & Tipo</th>
+              <th>Mentor / Transversal</th>
+              <th style="width: 120px;">Estado</th>
+              <th style="width: 110px;">Enlaces</th>
+              <th>Acciones de Control & Borrado Granular</th>
+            </tr>
+          </thead>
+          <tbody id="tabla-clases">
+            <tr><td colspan="6" style="text-align: center; color: #64748b; padding: 24px;">Cargando clases registradas...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </details>
 
   <!-- Consolas Virtuales Plegables (<details>/<summary>) -->
   <div class="consoles-section">
@@ -644,6 +827,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
           <label><input type="checkbox" id="chk-auto-orq" checked> Auto-Scroll</label>
           <div>
             <button class="btn action-btn-sm" onclick="cargarLogArchivo('orquestador')">🔄 Recargar</button>
+            <button class="btn action-btn-sm" onclick="copiarConsola('orquestador', this)">📋 Copiar</button>
             <button class="btn action-btn-sm" onclick="limpiarLogArchivo('orquestador')">🧹 Limpiar</button>
           </div>
         </div>
@@ -662,6 +846,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
           <label><input type="checkbox" id="chk-auto-vigia" checked> Auto-Scroll</label>
           <div>
             <button class="btn action-btn-sm" onclick="cargarLogArchivo('vigia')">🔄 Recargar</button>
+            <button class="btn action-btn-sm" onclick="copiarConsola('vigia', this)">📋 Copiar</button>
             <button class="btn action-btn-sm" onclick="limpiarLogArchivo('vigia')">🧹 Limpiar</button>
           </div>
         </div>
@@ -680,10 +865,31 @@ DASHBOARD_HTML = """<!DOCTYPE html>
           <label><input type="checkbox" id="chk-auto-sis" checked> Auto-Scroll</label>
           <div>
             <button class="btn action-btn-sm" onclick="cargarLogArchivo('sistema')">🔄 Recargar</button>
+            <button class="btn action-btn-sm" onclick="copiarConsola('sistema', this)">📋 Copiar</button>
             <button class="btn action-btn-sm" onclick="limpiarLogArchivo('sistema')">🧹 Limpiar</button>
           </div>
         </div>
         <div class="terminal-logs" id="terminal-sistema"></div>
+      </div>
+    </details>
+
+    <!-- Consola 4: Notificaciones de Errores e IA (Auto-Sanación) -->
+    <details class="console-box" id="sec-errores">
+      <summary>
+        <span>🤖 Consola 4: Notificaciones de Errores e IA (Auto-Sanación)</span>
+        <span id="badge-errores-resumen" style="font-size: 11px; color: #f87171;">registro_errores.json ▼</span>
+      </summary>
+      <div class="console-body">
+        <div class="console-toolbar">
+          <label><input type="checkbox" id="chk-auto-err" checked> Auto-Scroll</label>
+          <div>
+            <button class="btn action-btn-sm" onclick="cargarErrores()">🔄 Recargar</button>
+            <button class="btn action-btn-sm" onclick="copiarConsola('errores', this)">📋 Copiar</button>
+            <button class="btn action-btn-sm btn-success" onclick="marcarErroresResueltos()">✅ Marcar Resueltos</button>
+            <button class="btn action-btn-sm" onclick="limpiarLogErrores()">🧹 Limpiar</button>
+          </div>
+        </div>
+        <div class="terminal-logs" id="terminal-errores"></div>
       </div>
     </details>
   </div>
@@ -829,6 +1035,23 @@ DASHBOARD_HTML = """<!DOCTYPE html>
           renderTabla(TODAS_LAS_CLASES);
           actualizarKPIs();
         }
+        try {
+          const resOrq = await fetch('/api/orquestador/estado');
+          if (resOrq.ok) {
+            const orqData = await resOrq.json();
+            const badgeOrq = document.getElementById('badge-orquestador');
+            if (badgeOrq) {
+              if (orqData.vivo) {
+                badgeOrq.className = 'badge-status badge-success';
+                badgeOrq.innerHTML = '<span class="pulse-dot"></span> 🟢 Orquestador En Vivo';
+              } else {
+                badgeOrq.className = 'badge-status badge-vigia-paused';
+                badgeOrq.innerHTML = '<span class="pulse-dot"></span> 🟡 Orquestador Iniciando...';
+              }
+            }
+          }
+        } catch (_) {}
+
         if (resVigia.ok) {
           const vigiaData = await resVigia.json();
           VIGIA_PAUSADO = vigiaData.pausado;
@@ -851,71 +1074,212 @@ DASHBOARD_HTML = """<!DOCTYPE html>
       }
     }
 
+    let FILTRO_TIPO_ACTUAL = 'TODAS';
+    let FILTRO_ESTADO_ACTUAL = null;
+
+    function escapeAttr(s) {
+      if (!s) return '';
+      const bs = String.fromCharCode(92);
+      const sq = String.fromCharCode(39);
+      return String(s).split(bs).join(bs + bs).split(sq).join(bs + sq).split('"').join('&quot;');
+    }
+
+    function calcularInfoHorario(fechaIso, duracionMin) {
+      const dur = parseInt(duracionMin, 10) || 60;
+      if (!fechaIso) {
+        return {
+          fechaStr: '-',
+          rangoStr: '--:-- - --:--',
+          duracionStr: `${dur} min`,
+          diaEtiqueta: 'OTRO',
+          hInicio: '--:--',
+          hFin: '--:--',
+          isoDate: ''
+        };
+      }
+
+      let anio, mes, dia, hora, min;
+      const match = String(fechaIso).match(/^(\\d{4})-(\\d{2})-(\\d{2})[T\\s](\\d{2}):(\\d{2})/);
+      if (match) {
+        anio = parseInt(match[1], 10);
+        mes = parseInt(match[2], 10) - 1;
+        dia = parseInt(match[3], 10);
+        hora = parseInt(match[4], 10);
+        min = parseInt(match[5], 10);
+      } else {
+        const d = new Date(fechaIso);
+        if (isNaN(d.getTime())) {
+          return {
+            fechaStr: String(fechaIso).substring(0, 10),
+            rangoStr: '--:-- - --:--',
+            duracionStr: `${dur} min`,
+            diaEtiqueta: 'OTRO',
+            hInicio: '--:--',
+            hFin: '--:--',
+            isoDate: ''
+          };
+        }
+        anio = d.getFullYear();
+        mes = d.getMonth();
+        dia = d.getDate();
+        hora = d.getHours();
+        min = d.getMinutes();
+      }
+
+      const pad = n => String(n).padStart(2, '0');
+      const dInicio = new Date(anio, mes, dia, hora, min);
+      const dFin = new Date(dInicio.getTime() + dur * 60000);
+
+      const hInicio = `${pad(dInicio.getHours())}:${pad(dInicio.getMinutes())}`;
+      const hFin = `${pad(dFin.getHours())}:${pad(dFin.getMinutes())}`;
+      const fechaStr = `${pad(dInicio.getDate())}/${pad(dInicio.getMonth() + 1)}/${dInicio.getFullYear()}`;
+      const isoDate = `${dInicio.getFullYear()}-${pad(dInicio.getMonth() + 1)}-${pad(dInicio.getDate())}`;
+
+      const hoy = new Date();
+      const hoyIso = `${hoy.getFullYear()}-${pad(hoy.getMonth() + 1)}-${pad(hoy.getDate())}`;
+      const manana = new Date(hoy.getTime() + 24 * 60 * 60 * 1000);
+      const mananaIso = `${manana.getFullYear()}-${pad(manana.getMonth() + 1)}-${pad(manana.getDate())}`;
+
+      let diaEtiqueta = 'OTRO';
+      if (isoDate === hoyIso) {
+        diaEtiqueta = 'HOY';
+      } else if (isoDate === mananaIso) {
+        diaEtiqueta = 'MANANA';
+      }
+
+      return {
+        fechaStr,
+        rangoStr: `${hInicio} - ${hFin}`,
+        duracionStr: `${dur} min`,
+        diaEtiqueta,
+        hInicio,
+        hFin,
+        isoDate
+      };
+    }
+
+    function clasificarTipoClase(c) {
+      const txt = `${c.titulo_original || ''} ${c.transversal || ''} ${c.mentor || ''} ${c.mentor_identificado || ''} ${c.id_clase || ''}`.toLowerCase();
+      const esMentoria = txt.includes('mentoría') || txt.includes('mentoria') || 
+                         txt.includes('zoom') || txt.includes('comunidad') || 
+                         txt.includes('comunidades') || txt.includes('q&a') || 
+                         txt.includes('preguntas') || txt.includes('voz') ||
+                         txt.includes('asesoría') || txt.includes('asesoria') ||
+                         (c.id_clase && c.id_clase.startsWith('mentoria_'));
+      return esMentoria ? 'MENTORIA' : 'MASTERCLASS';
+    }
+
     function actualizarKPIs() {
       const total = TODAS_LAS_CLASES.length;
       const grabando = TODAS_LAS_CLASES.filter(c => c.estado === 'GRABANDO').length;
       const comp = TODAS_LAS_CLASES.filter(c => c.estado === 'COMPLETADA').length;
       const pend = TODAS_LAS_CLASES.filter(c => c.estado === 'PENDIENTE' || c.regrabacion_activa == 1).length;
-      const mentoresSet = new Set(TODAS_LAS_CLASES.map(c => c.mentor_identificado).filter(Boolean));
+      const mentoresSet = new Set(TODAS_LAS_CLASES.map(c => c.mentor || c.mentor_identificado).filter(Boolean));
 
       document.getElementById('kpi-total').textContent = total;
       document.getElementById('kpi-grabando').textContent = grabando;
       document.getElementById('kpi-completadas').textContent = comp;
       document.getElementById('kpi-pendientes').textContent = pend;
       document.getElementById('kpi-mentores').textContent = mentoresSet.size;
+
+      const clasesHoyManana = TODAS_LAS_CLASES.filter(c => {
+        const info = calcularInfoHorario(c.fecha_grabacion, c.duracion_min);
+        return info.diaEtiqueta === 'HOY' || info.diaEtiqueta === 'MANANA' || c.estado === 'GRABANDO';
+      });
+      const pendHoyManana = clasesHoyManana.filter(c => c.estado === 'PENDIENTE' || c.estado === 'GRABANDO' || c.regrabacion_activa == 1).length;
+
+      const bTotalHM = document.getElementById('badge-total-hoy-manana');
+      if (bTotalHM) bTotalHM.textContent = `${clasesHoyManana.length} Programadas`;
+      const bPendHM = document.getElementById('badge-pendientes-hoy');
+      if (bPendHM) bPendHM.textContent = `${pendHoyManana} Pendientes`;
+
+      let totalMaster = 0;
+      let totalMentorias = 0;
+      TODAS_LAS_CLASES.forEach(c => {
+        if (clasificarTipoClase(c) === 'MENTORIA') totalMentorias++;
+        else totalMaster++;
+      });
+
+      const bHistTotal = document.getElementById('badge-hist-total');
+      if (bHistTotal) bHistTotal.textContent = `Total: ${total}`;
+      const bHistMaster = document.getElementById('badge-hist-masterclasses');
+      if (bHistMaster) bHistMaster.textContent = `🎓 ${totalMaster} Masterclasses`;
+      const bHistMent = document.getElementById('badge-hist-mentorias');
+      if (bHistMent) bHistMent.textContent = `🎙️ ${totalMentorias} Mentorías`;
+      const bHistComp = document.getElementById('badge-hist-completadas');
+      if (bHistComp) bHistComp.textContent = `✅ ${comp} Completadas`;
     }
 
-    function renderTabla(clases) {
-      const tbody = document.getElementById('tabla-clases');
-      if (clases.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #64748b; padding: 24px;">No hay clases registradas.</td></tr>';
+    function renderCronogramaHoyManana(clases) {
+      const tbody = document.getElementById('tabla-hoy-manana');
+      if (!tbody) return;
+
+      const filtradas = clases.filter(c => {
+        const info = calcularInfoHorario(c.fecha_grabacion, c.duracion_min);
+        return info.diaEtiqueta === 'HOY' || info.diaEtiqueta === 'MANANA' || c.estado === 'GRABANDO';
+      });
+
+      filtradas.sort((a, b) => (a.fecha_grabacion || '').localeCompare(b.fecha_grabacion || ''));
+
+      if (filtradas.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #64748b; padding: 24px;">No hay clases programadas para hoy ni mañana.</td></tr>';
         return;
       }
 
-      tbody.innerHTML = clases.map(c => {
+      tbody.innerHTML = filtradas.map(c => {
+        const info = calcularInfoHorario(c.fecha_grabacion, c.duracion_min);
+        const tipo = clasificarTipoClase(c);
         const esGrabando = c.estado === 'GRABANDO';
         const esRegrab = c.regrabacion_activa == 1;
         const estadoLabel = esRegrab ? 'RE-GRABACIÓN' : c.estado;
         const claseBadge = esRegrab ? 'st-PENDIENTE' : ('st-' + (c.estado || 'PENDIENTE'));
+        const mentorNombre = c.mentor || c.mentor_identificado || 'General';
         const tgLink = c.telegram_url || c.telegram_web_url;
-        const nlmLink = c.notebook_url;
-        const tieneVideoLocal = !!c.ruta_archivo;
+
+        let badgeDiaHtml = '';
+        if (esGrabando) {
+          badgeDiaHtml = '<span class="badge-pill pill-danger" style="font-size: 11px; padding: 2px 8px;">🔴 EN VIVO</span>';
+        } else if (info.diaEtiqueta === 'HOY') {
+          badgeDiaHtml = '<span class="badge-pill pill-success" style="font-size: 11px; padding: 2px 8px;">🟢 HOY</span>';
+        } else if (info.diaEtiqueta === 'MANANA') {
+          badgeDiaHtml = '<span class="badge-pill pill-purple" style="font-size: 11px; padding: 2px 8px;">🟣 MAÑANA</span>';
+        } else {
+          badgeDiaHtml = '<span class="badge-pill pill-cyan" style="font-size: 11px; padding: 2px 8px;">PROGRAMADA</span>';
+        }
+
+        const badgeTipoHtml = (tipo === 'MENTORIA')
+          ? '<span class="badge-tipo tipo-mentoria">🎙️ Mentoría</span>'
+          : '<span class="badge-tipo tipo-masterclass">🎓 Masterclass</span>';
 
         return `
-          <tr>
+          <tr style="${esGrabando ? 'background: rgba(239, 68, 68, 0.08);' : ''}">
             <td>
-              <div style="font-weight: 700; color: #f1f5f9;">${(c.fecha_grabacion || '-').substring(0, 16).replace('T', ' ')}</div>
-              <div style="font-size: 11px; color: #64748b; font-family: monospace;">${c.id_clase}</div>
+              ${badgeDiaHtml}
+              <div style="font-size: 11px; color: #94a3b8; margin-top: 4px; font-weight: 500;">${info.fechaStr}</div>
             </td>
             <td>
-              <div style="font-weight: 600; color: #e2e8f0;">${c.titulo_original}</div>
-              <div style="font-size: 11px; color: #94a3b8;">${tieneVideoLocal ? '📁 ' + c.ruta_archivo.split(/[\\\\/]/).pop() : '☁️ Solo en Nube (Video purgado)'}</div>
+              <div class="rango-horario-badge">⏰ ${info.rangoStr}</div>
+              <div style="font-size: 11px; color: #38bdf8; margin-top: 3px; font-weight: 600;">⏱️ ${info.duracionStr}</div>
+            </td>
+            <td>${badgeTipoHtml}</td>
+            <td>
+              <div style="font-weight: 600; color: #f1f5f9; font-size: 13px;">${c.titulo_original}</div>
+              <div style="font-size: 10px; color: #64748b; font-family: monospace;">ID: ${c.id_clase}</div>
             </td>
             <td>
-              <div style="color: #38bdf8; font-weight: 600;">${c.mentor_identificado || 'General'}</div>
+              <div style="color: #38bdf8; font-weight: 600;">${mentorNombre}</div>
               <div style="font-size: 11px; color: #64748b;">${c.transversal || 'General'}</div>
             </td>
             <td>
               <span class="badge-estado ${claseBadge}">${estadoLabel}</span>
             </td>
             <td>
-              <div style="display: flex; gap: 4px; flex-wrap: wrap;">
-                ${tgLink ? `<a class="btn btn-success action-btn-sm" href="${tgLink}" target="_blank">🎬 TG</a>` : '<span style="color: #475569; font-size: 11px;">TG Pend.</span>'}
-                ${nlmLink ? `<a class="btn btn-purple action-btn-sm" href="${nlmLink}" target="_blank">🧠 NLM</a>` : ''}
-              </div>
-            </td>
-            <td>
               <div class="action-group">
-                ${esGrabando ? `<button class="btn btn-danger action-btn-sm" onclick="hotCancel('${c.id_clase}')">🛑 Cancelar</button>` : ''}
-                <button class="btn btn-warning action-btn-sm" onclick="regrabarSeguro('${c.id_clase}')">🔁 Re-grabar</button>
+                ${esGrabando ? `<button class="btn btn-danger action-btn-sm" onclick="hotCancel('${c.id_clase}')">⏹️ Cancelar</button>` : ''}
+                <button class="btn btn-warning action-btn-sm" onclick="regrabarSeguro('${c.id_clase}')">🔄 Re-grabar</button>
                 <button class="btn btn-primary action-btn-sm" onclick="forzarSubida('${c.id_clase}')">🚀 Subir TG</button>
-                <button class="btn action-btn-sm" onclick="abrirModalDomino('${c.id_clase}', '${c.titulo_original.replace(/'/g, "\\\\'")}', '${c.mentor_identificado || ''}')">✏️ Mentor</button>
-                <button class="btn action-btn-sm" onclick="toggleVisibilidadWeb('${c.id_clase}', ${c.estado === 'OCULTA'})">${c.estado === 'OCULTA' ? '👁️ Mostrar' : '👁️ Ocultar'}</button>
-                
-                <!-- 3 Botones Independientes de Gestión de Borrado -->
-                <button class="btn btn-danger action-btn-sm" title="Elimina el MP4 local, preserva Telegram y Web" onclick="confirmarBorrarVideoLocal('${c.id_clase}', '${c.titulo_original.replace(/'/g, "\\\\'")}')">🗑️ Video Local</button>
-                <button class="btn btn-danger action-btn-sm" title="Elimina resúmenes y material IA local" onclick="confirmarBorrarMaterialIA('${c.id_clase}', '${c.titulo_original.replace(/'/g, "\\\\'")}')">🗑️ Material IA</button>
-                <button class="btn btn-danger action-btn-sm" title="Elimina de la base de datos y Web (NUNCA de Telegram)" onclick="confirmarEliminarSistema('${c.id_clase}', '${c.titulo_original.replace(/'/g, "\\\\'")}')">🗑️ Eliminar Clase</button>
+                <button class="btn action-btn-sm" onclick="abrirModalDomino('${c.id_clase}', '${escapeAttr(c.titulo_original)}', '${escapeAttr(mentorNombre)}')">👤 Mentor</button>
+                ${tgLink ? `<a class="btn btn-success action-btn-sm" href="${tgLink}" target="_blank">✈️ TG</a>` : ''}
               </div>
             </td>
           </tr>
@@ -923,37 +1287,151 @@ DASHBOARD_HTML = """<!DOCTYPE html>
       }).join('');
     }
 
-    function filtrarTabla() {
-      const q = document.getElementById('filtroTexto').value.toLowerCase();
-      const filtradas = TODAS_LAS_CLASES.filter(c => {
-        return (c.titulo_original && c.titulo_original.toLowerCase().includes(q)) ||
-               (c.id_clase && c.id_clase.toLowerCase().includes(q)) ||
-               (c.mentor_identificado && c.mentor_identificado.toLowerCase().includes(q)) ||
-               (c.transversal && c.transversal.toLowerCase().includes(q));
-      });
-      renderTabla(filtradas);
+    function renderTablaHistorial(clases) {
+      const tbody = document.getElementById('tabla-clases');
+      if (!tbody) return;
+
+      if (clases.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #64748b; padding: 24px;">No hay clases que coincidan con el filtro.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = clases.map(c => {
+        const info = calcularInfoHorario(c.fecha_grabacion, c.duracion_min);
+        const tipo = clasificarTipoClase(c);
+        const esGrabando = c.estado === 'GRABANDO';
+        const esRegrab = c.regrabacion_activa == 1;
+        const estadoLabel = esRegrab ? 'RE-GRABACIÓN' : c.estado;
+        const claseBadge = esRegrab ? 'st-PENDIENTE' : ('st-' + (c.estado || 'PENDIENTE'));
+        const tgLink = c.telegram_url || c.telegram_web_url;
+        const nlmLink = c.notebook_url;
+        const tieneVideoLocal = !!c.ruta_archivo;
+        const mentorNombre = c.mentor || c.mentor_identificado || 'General';
+
+        const badgeTipoHtml = (tipo === 'MENTORIA')
+          ? '<span class="badge-tipo tipo-mentoria">🎙️ Mentoría</span>'
+          : '<span class="badge-tipo tipo-masterclass">🎓 Masterclass</span>';
+
+        return `
+          <tr>
+            <td>
+              <div style="font-weight: 700; color: #f1f5f9;">${info.fechaStr}</div>
+              <div class="rango-horario-badge" style="margin-top: 3px;">⏰ ${info.rangoStr}</div>
+              <div style="font-size: 11px; color: #38bdf8; margin-top: 2px;">⏱️ ${info.duracionStr}</div>
+              <div style="font-size: 10px; color: #64748b; font-family: monospace; margin-top: 2px;">${c.id_clase}</div>
+            </td>
+            <td>
+              <div style="margin-bottom: 4px;">${badgeTipoHtml}</div>
+              <div style="font-weight: 600; color: #e2e8f0; font-size: 13px;">${c.titulo_original}</div>
+              <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">${tieneVideoLocal ? '📁 ' + (c.ruta_archivo || '').split(String.fromCharCode(92)).join('/').split('/').pop() : '☁️ Solo en Nube (Video purgado)'}</div>
+            </td>
+            <td>
+              <div style="color: #38bdf8; font-weight: 600;">${mentorNombre}</div>
+              <div style="font-size: 11px; color: #64748b;">${c.transversal || 'General'}</div>
+            </td>
+            <td>
+              <span class="badge-estado ${claseBadge}">${estadoLabel}</span>
+            </td>
+            <td>
+              <div style="display: flex; gap: 4px; flex-wrap: wrap;">${tgLink ? `<a class="btn btn-success action-btn-sm" href="${tgLink}" target="_blank">✈️ TG</a>` : '<span style="color: #475569; font-size: 11px;">TG Pend.</span>'}${nlmLink ? `<a class="btn btn-purple action-btn-sm" href="${nlmLink}" target="_blank">📓 NLM</a>` : ''}</div>
+            </td>
+            <td>
+              <div class="action-group">
+                ${esGrabando ? `<button class="btn btn-danger action-btn-sm" onclick="hotCancel('${c.id_clase}')">⏹️ Cancelar</button>` : ''}
+                <button class="btn btn-warning action-btn-sm" onclick="regrabarSeguro('${c.id_clase}')">🔄 Re-grabar</button>
+                <button class="btn btn-primary action-btn-sm" onclick="forzarSubida('${c.id_clase}')">🚀 Subir TG</button>
+                <button class="btn btn-success action-btn-sm" onclick="regenerarAppWeb()" title="Sincronizar y publicar de inmediato en la App Web LMS">🌐 Subir Web</button>
+                <button class="btn action-btn-sm" onclick="abrirModalDomino('${c.id_clase}', '${escapeAttr(c.titulo_original)}', '${escapeAttr(mentorNombre)}')">👤 Mentor</button>
+                <button class="btn action-btn-sm" onclick="toggleVisibilidadWeb('${c.id_clase}', ${c.estado === 'OCULTA'})">${c.estado === 'OCULTA' ? '👁️ Mostrar' : '👁️ Ocultar'}</button>
+                
+                <!-- 3 Botones Independientes de Gestión de Borrado -->
+                <button class="btn btn-danger action-btn-sm" title="Elimina el MP4 local, preserva Telegram y Web" onclick="confirmarBorrarVideoLocal('${c.id_clase}', '${escapeAttr(c.titulo_original)}')">🗑️ Video Local</button>
+                <button class="btn btn-danger action-btn-sm" title="Elimina resúmenes y material IA local" onclick="confirmarBorrarMaterialIA('${c.id_clase}', '${escapeAttr(c.titulo_original)}')">🗑️ Material IA</button>
+                <button class="btn btn-danger action-btn-sm" title="Elimina de la base de datos y Web (NUNCA de Telegram)" onclick="confirmarEliminarSistema('${c.id_clase}', '${escapeAttr(c.titulo_original)}')">🗑️ Eliminar Clase</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
     }
 
-    function filtrarHoy() {
-      const hoy = new Date();
-      const aaaa = hoy.getFullYear();
-      const mm = String(hoy.getMonth() + 1).padStart(2, '0');
-      const dd = String(hoy.getDate()).padStart(2, '0');
-      const hoyISO = `${aaaa}-${mm}-${dd}`;
-      const hoySlash = `${dd}/${mm}/${aaaa}`;
+    function renderTabla(clases) {
+      renderCronogramaHoyManana(TODAS_LAS_CLASES);
+      renderTablaHistorial(clases);
+    }
 
-      const filtradas = TODAS_LAS_CLASES.filter(c => {
-        const f = c.fecha_grabacion || '';
-        const esHoy = f.includes(hoyISO) || f.includes(hoySlash);
-        const esPendiente = c.estado === 'PENDIENTE' || c.estado === 'GRABANDO' || c.regrabacion_activa == 1;
-        return esHoy || esPendiente;
-      });
-      renderTabla(filtradas);
+    function filtrarTipo(tipo) {
+      FILTRO_TIPO_ACTUAL = tipo;
+      aplicarFiltrosHistorial();
     }
 
     function filtrarPorEstado(estadoFiltro) {
-      const filtradas = TODAS_LAS_CLASES.filter(c => c.estado === estadoFiltro);
-      renderTabla(filtradas);
+      const el = document.getElementById('sec-historico-clases');
+      if (el) el.open = true;
+      FILTRO_ESTADO_ACTUAL = (FILTRO_ESTADO_ACTUAL === estadoFiltro) ? null : estadoFiltro;
+      aplicarFiltrosHistorial();
+    }
+
+    function filtrarHistorialHoy() {
+      const el = document.getElementById('sec-historico-clases');
+      if (el) el.open = true;
+      const hoy = new Date();
+      const pad = n => String(n).padStart(2, '0');
+      const hoyIso = `${hoy.getFullYear()}-${pad(hoy.getMonth() + 1)}-${pad(hoy.getDate())}`;
+      
+      const filtradas = TODAS_LAS_CLASES.filter(c => {
+        const info = calcularInfoHorario(c.fecha_grabacion, c.duracion_min);
+        return info.isoDate === hoyIso;
+      });
+      renderTablaHistorial(filtradas);
+    }
+
+    function filtrarTabla() {
+      aplicarFiltrosHistorial();
+    }
+
+    function aplicarFiltrosHistorial() {
+      const q = (document.getElementById('filtroTexto').value || '').toLowerCase().trim();
+      let filtradas = TODAS_LAS_CLASES.filter(c => {
+        if (FILTRO_TIPO_ACTUAL !== 'TODAS') {
+          const tipo = clasificarTipoClase(c);
+          if (tipo !== FILTRO_TIPO_ACTUAL) return false;
+        }
+        if (FILTRO_ESTADO_ACTUAL) {
+          if (FILTRO_ESTADO_ACTUAL === 'PENDIENTE') {
+            if (c.estado !== 'PENDIENTE' && c.regrabacion_activa != 1) return false;
+          } else if (c.estado !== FILTRO_ESTADO_ACTUAL) {
+            return false;
+          }
+        }
+        if (q) {
+          const mentorNombre = (c.mentor || c.mentor_identificado || '').toLowerCase();
+          const match = (c.titulo_original && c.titulo_original.toLowerCase().includes(q)) ||
+                        (c.id_clase && c.id_clase.toLowerCase().includes(q)) ||
+                        mentorNombre.includes(q) ||
+                        (c.transversal && c.transversal.toLowerCase().includes(q));
+          if (!match) return false;
+        }
+        return true;
+      });
+      renderTablaHistorial(filtradas);
+    }
+
+    function filtrarHoy() {
+      const el = document.getElementById('sec-cronograma-hoy-manana');
+      if (el) {
+        el.open = true;
+        el.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+
+    function abrirHistorialTotal() {
+      const el = document.getElementById('sec-historico-clases');
+      if (el) {
+        el.open = true;
+        el.scrollIntoView({ behavior: 'smooth' });
+      }
+      filtrarTipo('TODAS');
     }
 
     // Acciones de Borrado Granular
@@ -1340,8 +1818,8 @@ DASHBOARD_HTML = """<!DOCTYPE html>
           if (terminal) {
             terminal.innerHTML = logs.map(l => `
               <div class="log-row">
-                <span class="log-time">[${l.timestamp}]</span>
-                <span class="log-lvl-${l.nivel}">${l.mensaje}</span>
+                <span class="log-msg log-lvl-${l.nivel}">${l.mensaje}</span>
+                <span class="log-time">${l.timestamp}</span>
               </div>
             `).join('');
             const chk = document.getElementById(chkId);
@@ -1352,6 +1830,130 @@ DASHBOARD_HTML = """<!DOCTYPE html>
         }
       } catch (e) {
         console.error('Error cargando log ' + tipo, e);
+      }
+    }
+
+    async function copiarConsola(tipo, btn) {
+      const terminal = document.getElementById('terminal-' + tipo);
+      if (!terminal) return;
+      const texto = terminal.innerText || terminal.textContent || '';
+      if (!texto.trim()) {
+        mostrarToast('⚠️ La consola está vacía');
+        return;
+      }
+      let copiado = false;
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(texto);
+          copiado = true;
+        } else {
+          throw new Error('Clipboard API no disponible');
+        }
+      } catch (err) {
+        const ta = document.createElement('textarea');
+        ta.value = texto;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try {
+          copiado = document.execCommand('copy');
+        } catch (e) {}
+        document.body.removeChild(ta);
+      }
+      if (copiado) {
+        if (btn) {
+          const orig = btn.innerHTML;
+          btn.innerHTML = '✅ ¡Copiado!';
+          setTimeout(() => { btn.innerHTML = orig; }, 2000);
+        }
+        mostrarToast('📋 Consola copiada al portapapeles');
+      } else {
+        alert('No se pudo copiar automáticamente.');
+      }
+    }
+
+    function mostrarToast(msg) {
+      let toast = document.getElementById('toast-feedback');
+      if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'toast-feedback';
+        toast.style.cssText = 'position: fixed; bottom: 24px; right: 24px; background: #0284c7; color: white; padding: 10px 18px; border-radius: 8px; font-size: 13px; font-weight: 600; box-shadow: 0 4px 15px rgba(0,0,0,0.4); z-index: 99999; transition: opacity 0.3s; opacity: 0; pointer-events: none;';
+        document.body.appendChild(toast);
+      }
+      toast.textContent = msg;
+      toast.style.opacity = '1';
+      clearTimeout(window.__toastTimeout);
+      window.__toastTimeout = setTimeout(() => {
+        toast.style.opacity = '0';
+      }, 2500);
+    }
+
+    // Consola 4: Notificaciones de Errores e IA
+    async function cargarErrores() {
+      const terminal = document.getElementById('terminal-errores');
+      const badge = document.getElementById('badge-errores-resumen');
+      try {
+        const res = await fetch('/api/errores');
+        if (!res.ok) return;
+        const errores = await res.json();
+        const pendientes = errores.filter(e => e.estado === 'Pendiente').length;
+        if (badge) {
+          if (pendientes > 0) {
+            badge.style.color = '#f87171';
+            badge.textContent = `⚠️ ${pendientes} Pendiente(s) ▼`;
+          } else if (errores.length > 0) {
+            badge.style.color = '#38bdf8';
+            badge.textContent = `✅ ${errores.length} Registrado(s) ▼`;
+          } else {
+            badge.style.color = '#34d399';
+            badge.textContent = '0 Errores (Limpio) ▼';
+          }
+        }
+        if (!terminal) return;
+        if (errores.length === 0) {
+          terminal.innerHTML = '<div style="color: #64748b; padding: 12px; text-align: center;">✅ No hay errores en el buffer. El sistema opera al 100%.</div>';
+          return;
+        }
+        terminal.innerHTML = errores.map(e => `
+          <div class="log-row">
+            <div class="log-msg">
+              <span class="badge-err-estado badge-err-${e.estado}">${e.estado}</span>
+              <strong style="color: #f1f5f9; text-transform: uppercase;">[${e.modulo}]</strong>
+              <span style="color: #e2e8f0; font-family: monospace;">${e.error_traceback}</span>
+            </div>
+            <span class="log-time">${e.timestamp}</span>
+          </div>
+        `).join('');
+        const chk = document.getElementById('chk-auto-err');
+        if (chk && chk.checked) {
+          terminal.scrollTop = terminal.scrollHeight;
+        }
+      } catch (err) {
+        console.error('Error cargando errores:', err);
+      }
+    }
+
+    async function marcarErroresResueltos() {
+      try {
+        const res = await fetch('/api/errores/marcar_resuelto', { method: 'POST' });
+        const d = await res.json();
+        mostrarToast(d.mensaje || 'Errores marcados como Resueltos.');
+        cargarErrores();
+      } catch (e) {
+        alert('Error: ' + e);
+      }
+    }
+
+    async function limpiarLogErrores() {
+      if (!confirm('¿Deseas vaciar el registro histórico de errores?')) return;
+      try {
+        const res = await fetch('/api/errores/limpiar', { method: 'POST' });
+        const d = await res.json();
+        mostrarToast(d.mensaje || 'Registro de errores vaciado.');
+        cargarErrores();
+      } catch (e) {
+        alert('Error: ' + e);
       }
     }
 
@@ -1373,12 +1975,15 @@ DASHBOARD_HTML = """<!DOCTYPE html>
       if (document.getElementById('sec-orquestador').open) cargarLogArchivo('orquestador');
       if (document.getElementById('sec-vigia').open) cargarLogArchivo('vigia');
       if (document.getElementById('sec-sistema').open) cargarLogArchivo('sistema');
+      if (document.getElementById('sec-errores').open) cargarErrores();
     }
 
     // Inicialización y Polling
     cargarDatos();
+    cargarErrores();
     refrescarTodosLosLogs();
     setInterval(cargarDatos, 5000);
+    setInterval(cargarErrores, 5000);
     setInterval(refrescarTodosLosLogs, 2500);
   </script>
 </body>
@@ -1398,6 +2003,18 @@ def api_clases():
         return jsonify(clases)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/inmunidades", methods=["GET"])
+def api_inmunidades():
+    inm_path = os.path.join(BASE_DIR, "registro_inmunidad.json")
+    if os.path.exists(inm_path):
+        try:
+            with open(inm_path, "r", encoding="utf-8") as f:
+                return jsonify(json.load(f))
+        except Exception:
+            pass
+    return jsonify([])
 
 
 @app.route("/api/dashboard_resumen", methods=["GET"])
@@ -1524,8 +2141,13 @@ def api_regrabar():
     if not id_clase:
         return jsonify({"error": "Falta id_clase"}), 400
     database.marcar_regrabacion_segura(id_clase)
-    registrar_log_sistema(f"🔁 [Safe Overwrite] Re-grabación activada para: '{id_clase}'", "INFO")
-    return jsonify({"status": "ok", "mensaje": f"Safe Overwrite activado para {id_clase}."})
+    cfg = cargar_config()
+    tz_local = pytz.timezone(cfg.get("timezone_local", "America/La_Paz")) if pytz else None
+    ahora_dt = datetime.datetime.now(tz_local) if tz_local else datetime.datetime.now()
+    ahora_str = ahora_dt.strftime("%Y-%m-%dT%H:%M:%S-04:00")
+    database.ejecutar_query("UPDATE clases_grabadas SET fecha_grabacion = ?, regrabacion_activa = 1, estado = 'PENDIENTE' WHERE id_clase = ?", (ahora_str, id_clase))
+    registrar_log_sistema(f"🔁 [Captura Inmediata] Grabación activada en vivo para: '{id_clase}'", "SUCCESS")
+    return jsonify({"status": "ok", "mensaje": f"Captura iniciada para {id_clase}. El Orquestador se enganchará a Chrome en breve."})
 
 
 def _worker_forzar_subida(id_clase: str):
@@ -1979,6 +2601,187 @@ def api_regenerar_web():
         return jsonify({"status": "ok", "mensaje": "App Web LMS sincronizada correctamente con GitHub Pages."})
     except Exception as e:
         registrar_log_sistema(f"Error regenerando App Web: {e}", "ERROR")
+        return jsonify({"error": str(e)}), 500
+
+
+
+
+@app.route("/api/errores", methods=["GET"])
+def api_obtener_errores():
+    try:
+        import error_buffer
+        errores = error_buffer.obtener_errores(max_items=150)
+        return jsonify(errores)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/errores/marcar_resuelto", methods=["POST"])
+def api_marcar_errores_resueltos():
+    try:
+        import error_buffer
+        total = error_buffer.marcar_todos_resueltos()
+        return jsonify({"mensaje": f"{total} errores marcados como Resueltos.", "total": total})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/errores/limpiar", methods=["POST"])
+def api_limpiar_errores():
+    try:
+        import error_buffer
+        error_buffer.limpiar_todos_los_errores()
+        return jsonify({"mensaje": "Registro de errores vaciado con éxito."})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/reiniciar_dashboard", methods=["POST"])
+def api_reiniciar_dashboard():
+    """Reinicia unicamente el servidor Flask para aplicar actualizaciones de codigo sin alterar otros motores."""
+    def _reiniciar():
+        import subprocess, sys
+        time.sleep(1)
+        subprocess.Popen(["pythonw", os.path.join(BASE_DIR, "dashboard_web.py")], cwd=BASE_DIR)
+        os._exit(0)
+    threading.Thread(target=_reiniciar, daemon=True).start()
+    return jsonify({"status": "ok", "mensaje": "Reiniciando servidor web del panel en 1 segundo..."})
+
+
+@app.route("/api/sincronizar_dell", methods=["POST", "GET"])
+def api_sincronizar_dell():
+    try:
+        import error_buffer
+        ok = error_buffer.intentar_sincronizar_con_dell()
+        if ok:
+            return jsonify({"status": "ok", "mensaje": "Sincronización con Agente Antigravity en Dell completada exitosamente."})
+        else:
+            return jsonify({"status": "offline", "mensaje": "Laptop Dell no disponible en la red local o sin errores pendientes."})
+    except Exception as e:
+        return jsonify({"status": "error", "mensaje": str(e)}), 500
+
+
+@app.route("/api/orquestador/estado", methods=["GET"])
+def api_orquestador_estado():
+    hb_path = os.path.join(BASE_DIR, "heartbeat_orquestador.json")
+    vivo = False
+    estado = "DESCONOCIDO"
+    ts = 0
+    if os.path.exists(hb_path):
+        try:
+            with open(hb_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            ts = data.get("timestamp", 0)
+            if time.time() - ts < 45:
+                vivo = True
+                estado = data.get("estado", "ACTIVO")
+        except Exception:
+            pass
+    return jsonify({"vivo": vivo, "estado": estado, "segundos_desde_latido": int(time.time() - ts)})
+
+
+def obtener_pythonw():
+    pyw_exe = os.path.join(os.path.dirname(sys.executable), "pythonw.exe")
+    if os.path.exists(pyw_exe):
+        return pyw_exe
+    return "pythonw"
+
+
+@app.route("/api/admin/ejecutar", methods=["POST"])
+def api_admin_ejecutar():
+    try:
+        data = request.get_json() or {}
+        cmd = data.get("cmd", "")
+        if not cmd:
+            return jsonify({"error": "Comando vacío"}), 400
+        r = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, timeout=30)
+        return jsonify({"output": r.stdout, "returncode": r.returncode})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/orquestador/iniciar", methods=["POST"])
+def api_orquestador_iniciar():
+    try:
+        import subprocess
+        hb_path = os.path.join(BASE_DIR, "heartbeat_orquestador.json")
+        if os.path.exists(hb_path):
+            try:
+                with open(hb_path, "r", encoding="utf-8") as f:
+                    hb_data = json.load(f)
+                old_pid = hb_data.get("pid")
+                if old_pid:
+                    subprocess.run(["taskkill", "/F", "/PID", str(old_pid)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            except Exception:
+                pass
+            try:
+                os.remove(hb_path)
+            except Exception:
+                pass
+            time.sleep(1)
+
+        python_bin = obtener_pythonw()
+        subprocess.Popen([python_bin, os.path.join(BASE_DIR, "main.py")], cwd=BASE_DIR)
+        registrar_log_sistema("🚀 [Auto-Sanación] Orquestador reiniciado limpiamente.", "SUCCESS")
+        return jsonify({"status": "ok", "mensaje": "Orquestador reiniciado con éxito."})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+def supervisor_orquestador():
+    """Watchdog que garantiza que main.py se mantenga ejecutando 24/7 en segundo plano."""
+    time.sleep(30)
+    hb_path = os.path.join(BASE_DIR, "heartbeat_orquestador.json")
+    while True:
+        try:
+            debe_iniciar = False
+            if not os.path.exists(hb_path):
+                debe_iniciar = True
+            else:
+                try:
+                    with open(hb_path, "r", encoding="utf-8") as f:
+                        data = json.load(f)
+                    ts = data.get("timestamp", 0)
+                    if time.time() - ts > 120:
+                        debe_iniciar = True
+                except Exception:
+                    debe_iniciar = True
+
+            if debe_iniciar:
+                registrar_log_sistema("⚠️ [Supervisor Watchdog] main.py inactivo (>120s). Relanzando Orquestador limpiamente...", "WARN")
+                import subprocess
+                try:
+                    if os.path.exists(hb_path):
+                        with open(hb_path, "r", encoding="utf-8") as f:
+                            hb_d = json.load(f)
+                        old_p = hb_d.get("pid")
+                        if old_p:
+                            subprocess.run(["taskkill", "/F", "/PID", str(old_p)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                except Exception:
+                    pass
+                try:
+                    os.remove(hb_path)
+                except Exception:
+                    pass
+                time.sleep(1)
+                python_bin = obtener_pythonw()
+                subprocess.Popen([python_bin, os.path.join(BASE_DIR, "main.py")], cwd=BASE_DIR)
+                time.sleep(30)
+        except Exception:
+            pass
+        time.sleep(15)
+
+threading.Thread(target=supervisor_orquestador, daemon=True, name="SupervisorOrquestador").start()
+
+@app.route("/api/antigravity/sync_errores", methods=["POST"])
+def api_recibir_sync_antigravity():
+    try:
+        payload = request.get_json() or {}
+        origen = payload.get("origen", "Desconocido")
+        errores = payload.get("errores", [])
+        registrar_log_sistema(f"[Auto-Sanación] Sincronizados {len(errores)} errores desde {origen}", "INFO")
+        return jsonify({"status": "ok", "recibidos": len(errores)}), 200
+    except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 

@@ -17,6 +17,7 @@ import html
 import json
 
 import os
+os.environ["NODE_SKIP_PLATFORM_CHECK"] = "1"
 
 import re
 
@@ -233,18 +234,16 @@ async def _extraer_con_playwright_async() -> Tuple[List[Dict[str, Any]], str]:
         browser = None
 
         es_cdp = False
-
-        try:
-
-            browser = await p.chromium.connect_over_cdp("http://localhost:9222")
-
-            context = browser.contexts[0]
-
-            es_cdp = True
-
-        except Exception:
-
-            pass
+        for intento_cdp in range(1, 4):
+            try:
+                browser = await p.chromium.connect_over_cdp("http://localhost:9222")
+                if browser and browser.contexts:
+                    context = browser.contexts[0]
+                    es_cdp = True
+                    break
+            except Exception:
+                if intento_cdp < 3:
+                    await asyncio.sleep(1)
 
         if not browser:
 
@@ -786,7 +785,9 @@ def ejecutar_scraper_y_sincronizacion() -> List[Dict[str, Any]]:
 
         if not res_sync.get("exito"):
 
-            webhook_resp = f"ERR: {res_sync.get('error', 'Fallo')[:10]}"
+            err_val = res_sync.get("error") or res_sync.get("respuesta") or "Fallo"
+
+            webhook_resp = f"ERR: {str(err_val)[:10]}"
 
         dur_str = f"{c['duracion_min']} min"
 

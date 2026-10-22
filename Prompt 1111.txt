@@ -1,0 +1,300 @@
+﻿Requirement already satisfied: pyee==9.0.4 in c:\users\david\appdata\roaming\python\python38\site-packages (from playwright==1.28.0) (9.0.4)
+07:27:38
+Requirement already satisfied: typing-extensions in c:\users\david\appdata\roaming\python\python38\site-packages (from playwright==1.28.0) (4.13.2)
+07:27:38
+[Acer Python Pip List]:
+--:--:--
+Package Version
+07:27:41
+------------------ ----------
+07:27:41
+beautifulsoup4 4.15.0
+07:27:41
+blinker 1.8.2
+07:27:41
+certifi 2026.10.19
+07:27:41
+charset-normalizer 3.5.2
+07:27:41
+click 8.1.8
+07:27:41
+colorama 0.4.6
+07:27:41
+cryptg 0.5.2
+07:27:41
+Flask 3.0.3
+07:27:41
+Flask-Cors 5.0.0
+07:27:41
+greenlet 2.0.1
+07:27:41
+idna 3.15
+07:27:41
+importlib_metadata 8.5.0
+07:27:41
+itsdangerous 2.2.0
+07:27:41
+Jinja2 3.1.6
+07:27:41
+MarkupSafe 2.1.5
+07:27:41
+pip 25.0.1
+07:27:41
+playwright 1.28.0
+07:27:41
+pyaes 1.6.1
+07:27:41
+pyasn1 0.6.4
+07:27:41
+pyee 9.0.4
+07:27:41
+pytz 2026.5
+07:27:41
+requests 2.32.4
+07:27:41
+rsa 4.9.1
+07:27:41
+schedule 1.2.2
+07:27:41
+setuptools 56.0.0
+07:27:41
+soupsieve 2.7
+07:27:41
+Telethon 1.45.0
+07:27:41
+typing_extensions 4.13.2
+07:27:41
+ujson 5.10.0
+07:27:41
+urllib3 2.2.3
+07:27:41
+Werkzeug 3.0.6
+07:27:41
+zipp 3.20.2
+07:27:41
+====================================================================================================
+07:27:41
+BOT UNIVERSIDAD ONLINE - ORQUESTADOR CONCURRENTE + DETECTOR DE MENTOR
+07:27:41
+====================================================================================================
+07:27:41
+✅ Multitarea y Sala de Espera (Queue) activa.
+07:27:41
+✅ Escucha activa de Mentorías de Zoom y Programador Manual cada 60s (Ultra-Bajo CPU).
+07:27:41
+✅ Identificación automática de Mentor en los primeros 3 minutos de audio.
+07:27:41
+====================================================================================================
+07:27:41
+[Orquestador] Sincronizando horarios...
+07:27:41
+===================================================================================================================
+07:27:41
+BOT UNIVERSIDAD ONLINE - EXTRACCIÓN INTELIGENTE Y SINCRONIZACIÓN GOOGLE CALENDAR
+07:27:41
+===================================================================================================================
+07:27:41
+Zona horaria local: America/La_Paz (UTC-4, offset: -04:00)
+07:27:41
+Webhook Calendar: https://script.google.com/macros/s/AKfycbyoLf3baMpu83cHYnFU61eZTSdMyl-eQdom6AzptQA3CO2r4YvWlSeinni3X93tJ8yo/exec
+07:27:41
+-------------------------------------------------------------------------------------------------------------------
+07:27:41
+Fuente de extracción: Navegador Playwright (Chrome local)
+07:27:53
+Total clases detectadas para HOY y MAÑANA: 12
+07:27:53
+DÍA | HORA BOLIVIA | OFFSET | DUR | ESTADO BD | WEBHOOK | TÍTULO
+07:27:53
+-------------------------------------------------------------------------------------------------------------------
+07:27:53
+HOY | 7:30am - 8:30am | -04:00 | 60 min | PENDIENTE | ACTUALIZADO | 100 Millones de Leads - Alex Hormozi - Curación de Mauricio Duque
+07:27:56
+HOY | 12:00pm - 1:00pm | -04:00 | 60 min | PENDIENTE | ACTUALIZADO | Webinars que facturan 6 cifras con Cris Urzua
+07:27:57
+HOY | 4:30pm - 5:30pm | -04:00 | 60 min | PENDIENTE | ACTUALIZADO | Cómo cerrar Ventas con la Objeción "No tengo Dinero" - Diana Aragon
+07:27:59
+HOY | 6:00pm - 7:00pm | -04:00 | 60 min | PENDIENTE | ACTUALIZADO | Cómo Ganar 320 Dólares Comercializando la Certificación de Ventas con IA - Rodolfo Buitrago
+07:28:02
+HOY | 8:00pm - 9:00pm | -04:00 | 60 min | PENDIENTE | ACTUALIZADO | Producto de 1 Millón de dólares - Globos para fiestas y eventos con Antonio Barrios
+07:28:05
+HOY | 8:00pm - 9:30pm | -04:00 | 90 min | COMPLETADA | ACTUALIZADO | MasterCamp®️ - Aprende a CREAR y/o VENDER Educación En Habla Hispana
+07:28:07
+MAÑANA | 9:00am - 10:00am | -04:00 | 60 min | PENDIENTE | ACTUALIZADO | Imágenes animadas con IA - Kike Cadena
+07:28:09
+MAÑANA | 12:30pm - 2:00pm | -04:00 | 90 min | PENDIENTE | ACTUALIZADO | Monetiza tu Conocimiento con Victor Damasio de Brasil
+07:28:10
+MAÑANA | 6:00pm - 7:00pm | -04:00 | 60 min | PENDIENTE | ACTUALIZADO | Gana dinero con Rueda de Comisiones con Marcos Araujo
+07:28:12
+MAÑANA | 7:00pm - 8:00pm | -04:00 | 60 min | COMPLETADA | ACTUALIZADO | Crea un Mapa de Empatía Profesional - Nino Scarpato
+07:28:14
+MAÑANA | 8:00pm - 9:30pm | -04:00 | 90 min | COMPLETADA | ACTUALIZADO | MasterCamp®️ - Aprende a CREAR y/o VENDER Educación En Habla Hispana
+07:28:16
+MAÑANA | 8:30pm - 9:30pm | -04:00 | 60 min | PENDIENTE | ACTUALIZADO | Google Ads para Emprendedores Digitales - Cesar Sanchez Russi
+07:28:18
+-------------------------------------------------------------------------------------------------------------------
+07:28:18
+[RESUMEN] Total clases: 12 | Sincronizadas exitosamente con Webhook: 12/12
+--:--:--
+===================================================================================================================
+07:28:18
+[Orquestador] ⏱️ Vigía activo. Escaneando cronograma en segundo plano (Ultra-Bajo CPU)...
+07:28:18
+🚀 [Orquestador] Horario alcanzado para: '100 Millones de Leads - Alex Hormozi - Curación de Mauricio Duque' (Anticipación: 101s)
+07:28:18
+[Auto-Sanación] Versión actual de Playwright (desconocida) usa Node incompatible con Windows 8. Instalando v1.28.0 (Node 16)...
+07:28:18
+[Auto-Sanación Pip 1.28]:
+--:--:--
+enlet==2.0.1 in c:\users\david\appdata\roaming\python\python38\site-packages (from playwright==1.28.0) (2.0.1)
+07:28:22
+Requirement already satisfied: pyee==9.0.4 in c:\users\david\appdata\roaming\python\python38\site-packages (from playwright==1.28.0) (9.0.4)
+07:28:22
+Requirement already satisfied: typing-extensions in c:\users\david\appdata\roaming\python\python38\site-packages (from playwright==1.28.0) (4.13.2)
+07:28:22
+[Acer Python Pip List]:
+--:--:--
+Package Version
+07:28:32
+------------------ ----------
+07:28:32
+beautifulsoup4 4.15.0
+07:28:32
+blinker 1.8.2
+07:28:32
+certifi 2026.10.19
+07:28:32
+charset-normalizer 3.5.2
+07:28:32
+click 8.1.8
+07:28:32
+colorama 0.4.6
+07:28:32
+cryptg 0.5.2
+07:28:32
+Flask 3.0.3
+07:28:32
+Flask-Cors 5.0.0
+07:28:32
+greenlet 2.0.1
+07:28:32
+idna 3.15
+07:28:32
+importlib_metadata 8.5.0
+07:28:32
+itsdangerous 2.2.0
+07:28:32
+Jinja2 3.1.6
+07:28:32
+MarkupSafe 2.1.5
+07:28:32
+pip 25.0.1
+07:28:32
+playwright 1.28.0
+07:28:32
+pyaes 1.6.1
+07:28:32
+pyasn1 0.6.4
+07:28:32
+pyee 9.0.4
+07:28:32
+pytz 2026.5
+07:28:32
+requests 2.32.4
+07:28:32
+rsa 4.9.1
+07:28:32
+schedule 1.2.2
+07:28:32
+setuptools 56.0.0
+07:28:32
+soupsieve 2.7
+07:28:32
+Telethon 1.45.0
+07:28:32
+typing_extensions 4.13.2
+07:28:32
+ujson 5.10.0
+07:28:32
+urllib3 2.2.3
+07:28:32
+Werkzeug 3.0.6
+07:28:32
+zipp 3.20.2
+07:28:32
+====================================================================================================
+07:28:32
+BOT UNIVERSIDAD ONLINE - ORQUESTADOR CONCURRENTE + DETECTOR DE MENTOR
+07:28:32
+====================================================================================================
+07:28:32
+✅ Multitarea y Sala de Espera (Queue) activa.
+07:28:32
+✅ Escucha activa de Mentorías de Zoom y Programador Manual cada 60s (Ultra-Bajo CPU).
+07:28:32
+✅ Identificación automática de Mentor en los primeros 3 minutos de audio.
+07:28:32
+====================================================================================================
+07:28:32
+[Orquestador] Sincronizando horarios...
+07:28:32
+===================================================================================================================
+07:28:32
+BOT UNIVERSIDAD ONLINE - EXTRACCIÓN INTELIGENTE Y SINCRONIZACIÓN GOOGLE CALENDAR
+07:28:32
+===================================================================================================================
+07:28:32
+Zona horaria local: America/La_Paz (UTC-4, offset: -04:00)
+07:28:32
+Webhook Calendar: https://script.google.com/macros/s/AKfycbyoLf3baMpu83cHYnFU61eZTSdMyl-eQdom6AzptQA3CO2r4YvWlSeinni3X93tJ8yo/exec
+07:28:32
+-------------------------------------------------------------------------------------------------------------------
+07:28:32
+Fuente de extracción: Navegador Playwright (Chrome local)
+07:28:52
+Total clases detectadas para HOY y MAÑANA: 12
+07:28:52
+DÍA | HORA BOLIVIA | OFFSET | DUR | ESTADO BD | WEBHOOK | TÍTULO
+07:28:52
+-------------------------------------------------------------------------------------------------------------------
+07:28:52
+HOY | 7:30am - 8:30am | -04:00 | 60 min | PENDIENTE | ACTUALIZADO | 100 Millones de Leads - Alex Hormozi - Curación de Mauricio Duque
+07:28:54
+HOY | 12:00pm - 1:00pm | -04:00 | 60 min | PENDIENTE | ACTUALIZADO | Webinars que facturan 6 cifras con Cris Urzua
+07:28:57
+HOY | 4:30pm - 5:30pm | -04:00 | 60 min | PENDIENTE | ACTUALIZADO | Cómo cerrar Ventas con la Objeción "No tengo Dinero" - Diana Aragon
+07:28:59
+HOY | 6:00pm - 7:00pm | -04:00 | 60 min | PENDIENTE | ACTUALIZADO | Cómo Ganar 320 Dólares Comercializando la Certificación de Ventas con IA - Rodolfo Buitrago
+07:29:01
+HOY | 8:00pm - 9:00pm | -04:00 | 60 min | PENDIENTE | ACTUALIZADO | Producto de 1 Millón de dólares - Globos para fiestas y eventos con Antonio Barrios
+07:29:04
+HOY | 8:00pm - 9:30pm | -04:00 | 90 min | COMPLETADA | ACTUALIZADO | MasterCamp®️ - Aprende a CREAR y/o VENDER Educación En Habla Hispana
+07:29:06
+MAÑANA | 9:00am - 10:00am | -04:00 | 60 min | PENDIENTE | ACTUALIZADO | Imágenes animadas con IA - Kike Cadena
+07:29:08
+MAÑANA | 12:30pm - 2:00pm | -04:00 | 90 min | PENDIENTE | ACTUALIZADO | Monetiza tu Conocimiento con Victor Damasio de Brasil
+07:29:10
+MAÑANA | 6:00pm - 7:00pm | -04:00 | 60 min | PENDIENTE | ACTUALIZADO | Gana dinero con Rueda de Comisiones con Marcos Araujo
+07:29:11
+MAÑANA | 7:00pm - 8:00pm | -04:00 | 60 min | COMPLETADA | ACTUALIZADO | Crea un Mapa de Empatía Profesional - Nino Scarpato
+07:29:13
+MAÑANA | 8:00pm - 9:30pm | -04:00 | 90 min | COMPLETADA | ACTUALIZADO | MasterCamp®️ - Aprende a CREAR y/o VENDER Educación En Habla Hispana
+07:29:15
+MAÑANA | 8:30pm - 9:30pm | -04:00 | 60 min | PENDIENTE | ACTUALIZADO | Google Ads para Emprendedores Digitales - Cesar Sanchez Russi
+07:29:17
+-------------------------------------------------------------------------------------------------------------------
+07:29:17
+[RESUMEN] Total clases: 12 | Sincronizadas exitosamente con Webhook: 12/12
+--:--:--
+===================================================================================================================
+07:29:17
+[Orquestador] ⏱️ Vigía activo. Escaneando cronograma en segundo plano (Ultra-Bajo CPU)...
+07:29:17
+🚀 [Orquestador] Horario alcanzado para: '100 Millones de Leads - Alex Hormozi - Curación de Mauricio Duque' (Anticipación: 42s)
+07:29:17
+[Orquestador] ⏱️ Vigía activo. Escaneando cronograma en segundo plano (Ultra-Bajo CPU)...
+07:29:22
+[Orquestador] ⏱️ Vigía activo. Escaneando cronograma en segundo plano (Ultra-Bajo CPU)...
+07:30:19
+[Orquestador] ⏱️ Vigía activo. Escaneando cronograma en segundo plano (Ultra-Bajo CPU)...
+07:30:23

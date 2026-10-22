@@ -69,6 +69,10 @@ import notebooklm_bot
 
 import route_builder
 
+import error_buffer
+
+error_buffer.instalar_manejador_global("vigia")
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 LOG_VIGIA_PATH = os.path.join(BASE_DIR, "logs_vigia.txt")
@@ -80,6 +84,7 @@ class FileLogger:
     def __init__(self, filename, original_stream=None):
         self.filename = filename
         self.original_stream = original_stream
+        self._at_line_start = True
 
     def write(self, message):
         try:
@@ -103,8 +108,28 @@ class FileLogger:
                         self.original_stream.flush()
                     except Exception:
                         pass
+
+            ts_actual = datetime.datetime.now().strftime("[%H:%M:%S] ")
+            partes = msg_str.split("\n")
+            lineas_formateadas = []
+            for i, parte in enumerate(partes):
+                if i == len(partes) - 1 and parte == "":
+                    continue
+                if self._at_line_start and parte.strip():
+                    if not (parte.startswith("[") and any(sep in parte[:25] for sep in (":", "--", "2026-"))):
+                        parte = ts_actual + parte
+                lineas_formateadas.append(parte)
+                self._at_line_start = True
+
+            texto_para_archivo = "\n".join(lineas_formateadas)
+            if msg_str.endswith("\n"):
+                texto_para_archivo += "\n"
+                self._at_line_start = True
+            else:
+                self._at_line_start = False
+
             with open(self.filename, "a", encoding="utf-8", errors="replace") as f:
-                f.write(msg_str)
+                f.write(texto_para_archivo)
         except Exception:
             pass
 

@@ -46,3 +46,11 @@ _backups_db/
 # ==============================================================================
 !clases.db
 *.db.bak
+*.bak_*
+*.bak
+*.session-journal
+flask_live.txt
+error_panel_critico.txt
+heartbeat_orquestador.json
+grabaciones.db
+universidad.db

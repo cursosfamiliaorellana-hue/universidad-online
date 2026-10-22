@@ -1,0 +1,62 @@
+[
+  {
+    "id": "INM-001",
+    "titulo": "Bucle Destructivo de Recargas por Pausa de Video",
+    "modulo": "recorder.py",
+    "sintoma": "Al pausarse el video de Hotmart o terminarse una parte, el grabador recargaba la página cada 75s hasta tumbar el driver con Connection closed.",
+    "causa_raiz": "El estado v.paused incrementaba segundos_congelado y ejecutaba target_page.reload() a los 30s destruyendo MediaRecorder.",
+    "solucion_definitiva": "En recorder.py se forzó que ante v.paused se ejecute v.play() y clicks a botones Play, reseteando segundos_congelado = 0. Se prohibió el reload por pausas y se restringió exclusivamente a pantallas de error crítico de red persistentes por más de 60s.",
+    "estado": "INMUNIZADO_PERMANENTE",
+    "fecha_resolucion": "2026-10-21"
+  },
+  {
+    "id": "INM-002",
+    "titulo": "Bucle Infinito de Reinstalación de Playwright en Windows 8",
+    "modulo": "main.py",
+    "sintoma": "En cada encendido del bot se ejecutaba pip install playwright==1.28.0 demorando el arranque 20 segundos innecesariamente.",
+    "causa_raiz": "getattr(playwright, '__version__') devolvía vacío porque Playwright no expone __version__ en el módulo raíz.",
+    "solucion_definitiva": "Se implementó detección precisa mediante importlib.metadata.version('playwright') y pkg_resources, detectando instantáneamente v1.28.0 sin ejecutar pip.",
+    "estado": "INMUNIZADO_PERMANENTE",
+    "fecha_resolucion": "2026-10-22"
+  },
+  {
+    "id": "INM-003",
+    "titulo": "Bloqueo Prematuro de Tarea de Grabación por Doble Chequeo",
+    "modulo": "main.py",
+    "sintoma": "El orquestador anunciaba 'Horario alcanzado' para una clase pero nunca abría Hotmart ni comenzaba la captura.",
+    "causa_raiz": "CLASES_EN_EJECUCION.add() se llamaba antes de la tarea, y dentro de procesar_flujo_clase() se comprobaba 'if id_clase in CLASES_EN_EJECUCION: return False', saliendo antes del try/finally y dejando la clase trabada de por vida.",
+    "solucion_definitiva": "Se eliminó el retorno prematuro falso dentro de procesar_flujo_clase(), garantizando ingreso inmediato al bloque try y liberación garantizada en finally.",
+    "estado": "INMUNIZADO_PERMANENTE",
+    "fecha_resolucion": "2026-10-22"
+  },
+  {
+    "id": "INM-004",
+    "titulo": "Reinicio Espurio del Orquestador por Watchdog Impaciente",
+    "modulo": "dashboard_web.py",
+    "sintoma": "El panel web relanzaba una segunda instancia paralela de main.py a los 45s de boot, causando colisiones de procesos.",
+    "causa_raiz": "El umbral de inactividad del watchdog era de solo 45s, menor que el tiempo que tarda la extracción de 12 clases y la llamada a 12 webhooks de Google Calendar.",
+    "solucion_definitiva": "Se amplió el watchdog a 120s, se integró latido continuo durante la sincronización inicial y se fuerza taskkill de cualquier PID anterior antes de respawnear.",
+    "estado": "INMUNIZADO_PERMANENTE",
+    "fecha_resolucion": "2026-10-22"
+  },
+  {
+    "id": "INM-005",
+    "titulo": "Pestañas Duplicadas de la Misma Lección en Chrome",
+    "modulo": "recorder.py",
+    "sintoma": "Al iniciar una clase, Hotmart abría dos pestañas de la misma lección simultáneamente.",
+    "causa_raiz": "Disparo asíncrono no atómico y falta de verificación de pestañas preexistentes.",
+    "solucion_definitiva": "Bloqueo sincrónico en main.py y escaneo previo de pestañas en recorder.py con sellado de identidad mediante window.__clase_id.",
+    "estado": "INMUNIZADO_PERMANENTE",
+    "fecha_resolucion": "2026-10-21"
+  },
+  {
+    "id": "INM-006",
+    "titulo": "Discrepancias de Nomenclatura entre Hotmart y Google Calendar",
+    "modulo": "scraper.py / recorder.py",
+    "sintoma": "El bot no encontraba la lección en vivo porque el docente le ponía un nombre distinto al del calendario oficial.",
+    "causa_raiz": "Búsqueda por coincidencia de texto exacta o substring rígido.",
+    "solucion_definitiva": "Buscador Adaptativo con tokenización normalizada, stopwords, pesos de relevancia y detección de flags 'EN VIVO' (Score adaptativo > 15).",
+    "estado": "INMUNIZADO_PERMANENTE",
+    "fecha_resolucion": "2026-10-21"
+  }
+]

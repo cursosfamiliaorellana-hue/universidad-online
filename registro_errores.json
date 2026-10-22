@@ -1,0 +1,604 @@
+[
+  {
+    "id": "err_1792593152868",
+    "timestamp": "2026-10-21 10:32:32",
+    "modulo": "dashboard",
+    "error_traceback": "Traceback (most recent call last):\n  File \"<string>\", line 34, in <module>\n  File \"C:\\Users\\David Herbas\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\asyncio\\runners.py\", line 195, in run\n    return runner.run(main)\n           ^^^^^^^^^^^^^^^^\n  File \"C:\\Users\\David Herbas\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\asyncio\\runners.py\", line 118, in run\n    return self._loop.run_until_complete(task)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Users\\David Herbas\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\asyncio\\base_events.py\", line 691, in run_until_complete\n    return future.result()\n           ^^^^^^^^^^^^^^^\n  File \"<string>\", line 16, in check_page\n  File \"C:\\Users\\David Herbas\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\playwright\\async_api\\_generated.py\", line 4177, in launch\n    await self._impl_obj.launch(\n  File \"C:\\Users\\David Herbas\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\playwright\\_impl\\_browser_type.py\", line 101, in launch\n    await self._channel.send(\n  File \"C:\\Users\\David Herbas\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\playwright\\_impl\\_connection.py\", line 78, in send\n    return await self._connection.wrap_api_call(\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Users\\David Herbas\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\playwright\\_impl\\_connection.py\", line 636, in wrap_api_call\n    raise rewrite_error(error, f\"{parsed_st['apiName']}: {error}\") from None\nplaywright._impl._errors.Error: BrowserType.launch: Executable doesn't exist at C:\\Users\\David Herbas\\AppData\\Local\\ms-playwright\\chromium_headless_shell-1248\\chrome-headless-shell-win64\\chrome-headless-shell.exe\n╔════════════════════════════════════════════════════════════╗\n║ Looks like Playwright was just installed or updated.       ║\n║ Please run the following command to download new browsers: ║\n║                                                            ║\n║     playwright install                                     ║\n║                                                            ║\n║ <3 Playwright Team                                         ║\n╚════════════════════════════════════════════════════════════╝",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792594719159",
+    "timestamp": "2026-10-21 10:58:39",
+    "modulo": "test_module",
+    "error_traceback": "Discrepancia resuelta en Hotmart: Test auto-sanacion",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792609760333",
+    "timestamp": "2026-10-21 15:09:20",
+    "modulo": "recorder",
+    "error_traceback": "No se pudo enganchar al video de Chrome o falló la grabación: 'Comunidades Digitales con Wemany - Carlos Jimenez'",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792610490437",
+    "timestamp": "2026-10-21 15:21:30",
+    "modulo": "orquestador",
+    "error_traceback": "Traceback (most recent call last):\n  File \"E:\\Bot_UniversidadOnline\\main.py\", line 131, in <module>\n    import requests\nModuleNotFoundError: No module named 'requests'",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792610530459",
+    "timestamp": "2026-10-21 15:22:10",
+    "modulo": "orquestador",
+    "error_traceback": "Traceback (most recent call last):\n  File \"E:\\Bot_UniversidadOnline\\main.py\", line 131, in <module>\n    import requests\nModuleNotFoundError: No module named 'requests'",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792610570457",
+    "timestamp": "2026-10-21 15:22:50",
+    "modulo": "orquestador",
+    "error_traceback": "Traceback (most recent call last):\n  File \"E:\\Bot_UniversidadOnline\\main.py\", line 131, in <module>\n    import requests\nModuleNotFoundError: No module named 'requests'",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792610610465",
+    "timestamp": "2026-10-21 15:23:30",
+    "modulo": "orquestador",
+    "error_traceback": "Traceback (most recent call last):\n  File \"E:\\Bot_UniversidadOnline\\main.py\", line 131, in <module>\n    import requests\nModuleNotFoundError: No module named 'requests'",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792610650468",
+    "timestamp": "2026-10-21 15:24:10",
+    "modulo": "orquestador",
+    "error_traceback": "Traceback (most recent call last):\n  File \"E:\\Bot_UniversidadOnline\\main.py\", line 131, in <module>\n    import requests\nModuleNotFoundError: No module named 'requests'",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792610690595",
+    "timestamp": "2026-10-21 15:24:50",
+    "modulo": "orquestador",
+    "error_traceback": "Traceback (most recent call last):\n  File \"E:\\Bot_UniversidadOnline\\main.py\", line 131, in <module>\n    import requests\nModuleNotFoundError: No module named 'requests'",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792610742727",
+    "timestamp": "2026-10-21 15:25:42",
+    "modulo": "orquestador",
+    "error_traceback": "Traceback (most recent call last):\n  File \"E:\\Bot_UniversidadOnline\\main.py\", line 149, in <module>\n    import notebooklm_bot\n  File \"E:\\Bot_UniversidadOnline\\notebooklm_bot.py\", line 24, in <module>\n    from playwright.async_api import async_playwright, Page, BrowserContext\nModuleNotFoundError: No module named 'playwright'",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792610770819",
+    "timestamp": "2026-10-21 15:26:10",
+    "modulo": "orquestador",
+    "error_traceback": "Traceback (most recent call last):\n  File \"E:\\Bot_UniversidadOnline\\main.py\", line 149, in <module>\n    import notebooklm_bot\n  File \"E:\\Bot_UniversidadOnline\\notebooklm_bot.py\", line 24, in <module>\n    from playwright.async_api import async_playwright, Page, BrowserContext\nModuleNotFoundError: No module named 'playwright'",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792610810869",
+    "timestamp": "2026-10-21 15:26:50",
+    "modulo": "orquestador",
+    "error_traceback": "Traceback (most recent call last):\n  File \"E:\\Bot_UniversidadOnline\\main.py\", line 149, in <module>\n    import notebooklm_bot\n  File \"E:\\Bot_UniversidadOnline\\notebooklm_bot.py\", line 24, in <module>\n    from playwright.async_api import async_playwright, Page, BrowserContext\nModuleNotFoundError: No module named 'playwright'",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792610860477",
+    "timestamp": "2026-10-21 15:27:40",
+    "modulo": "orquestador",
+    "error_traceback": "Traceback (most recent call last):\n  File \"E:\\Bot_UniversidadOnline\\main.py\", line 158, in <module>\n    import notebooklm_bot\n  File \"E:\\Bot_UniversidadOnline\\notebooklm_bot.py\", line 24, in <module>\n    from playwright.async_api import async_playwright, Page, BrowserContext\nModuleNotFoundError: No module named 'playwright'",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792610933789",
+    "timestamp": "2026-10-21 15:28:53",
+    "modulo": "orquestador",
+    "error_traceback": "Traceback (most recent call last):\n  File \"E:\\Bot_UniversidadOnline\\main.py\", line 158, in <module>\n    import notebooklm_bot\n  File \"E:\\Bot_UniversidadOnline\\notebooklm_bot.py\", line 24, in <module>\n    from playwright.async_api import async_playwright, Page, BrowserContext\nModuleNotFoundError: No module named 'playwright.async_api'",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792610969037",
+    "timestamp": "2026-10-21 15:29:29",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792610980506",
+    "timestamp": "2026-10-21 15:29:40",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792610992797",
+    "timestamp": "2026-10-21 15:29:52",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792611005079",
+    "timestamp": "2026-10-21 15:30:05",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792611016716",
+    "timestamp": "2026-10-21 15:30:16",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792611029043",
+    "timestamp": "2026-10-21 15:30:29",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792611042674",
+    "timestamp": "2026-10-21 15:30:42",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792611053422",
+    "timestamp": "2026-10-21 15:30:53",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Enviado"
+  },
+  {
+    "id": "err_1792611064934",
+    "timestamp": "2026-10-21 15:31:04",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792611077509",
+    "timestamp": "2026-10-21 15:31:17",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792611089143",
+    "timestamp": "2026-10-21 15:31:29",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792611101144",
+    "timestamp": "2026-10-21 15:31:41",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792611114169",
+    "timestamp": "2026-10-21 15:31:54",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792611125605",
+    "timestamp": "2026-10-21 15:32:05",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792611137564",
+    "timestamp": "2026-10-21 15:32:17",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792611149337",
+    "timestamp": "2026-10-21 15:32:29",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792611161941",
+    "timestamp": "2026-10-21 15:32:41",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792611175581",
+    "timestamp": "2026-10-21 15:32:55",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792611186052",
+    "timestamp": "2026-10-21 15:33:06",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792611197896",
+    "timestamp": "2026-10-21 15:33:17",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792611210096",
+    "timestamp": "2026-10-21 15:33:30",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792611222377",
+    "timestamp": "2026-10-21 15:33:42",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792611234337",
+    "timestamp": "2026-10-21 15:33:54",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792611246629",
+    "timestamp": "2026-10-21 15:34:06",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792611258867",
+    "timestamp": "2026-10-21 15:34:18",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792611271185",
+    "timestamp": "2026-10-21 15:34:31",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792611282871",
+    "timestamp": "2026-10-21 15:34:42",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792611294675",
+    "timestamp": "2026-10-21 15:34:54",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792611307010",
+    "timestamp": "2026-10-21 15:35:07",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792611319068",
+    "timestamp": "2026-10-21 15:35:19",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792611331330",
+    "timestamp": "2026-10-21 15:35:31",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792611345220",
+    "timestamp": "2026-10-21 15:35:45",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792611355092",
+    "timestamp": "2026-10-21 15:35:55",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792611367241",
+    "timestamp": "2026-10-21 15:36:07",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792611379729",
+    "timestamp": "2026-10-21 15:36:19",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792611391722",
+    "timestamp": "2026-10-21 15:36:31",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792611403683",
+    "timestamp": "2026-10-21 15:36:43",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792611415347",
+    "timestamp": "2026-10-21 15:36:55",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792611427844",
+    "timestamp": "2026-10-21 15:37:07",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792611439849",
+    "timestamp": "2026-10-21 15:37:19",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792611451965",
+    "timestamp": "2026-10-21 15:37:31",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792611464293",
+    "timestamp": "2026-10-21 15:37:44",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792611476594",
+    "timestamp": "2026-10-21 15:37:56",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792611488662",
+    "timestamp": "2026-10-21 15:38:08",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792611500455",
+    "timestamp": "2026-10-21 15:38:20",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792611515453",
+    "timestamp": "2026-10-21 15:38:35",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792611524613",
+    "timestamp": "2026-10-21 15:38:44",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792611537403",
+    "timestamp": "2026-10-21 15:38:57",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792611549248",
+    "timestamp": "2026-10-21 15:39:09",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792611565521",
+    "timestamp": "2026-10-21 15:39:25",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792611575250",
+    "timestamp": "2026-10-21 15:39:35",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792611585490",
+    "timestamp": "2026-10-21 15:39:45",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792611596874",
+    "timestamp": "2026-10-21 15:39:56",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792611617786",
+    "timestamp": "2026-10-21 15:40:17",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792611621446",
+    "timestamp": "2026-10-21 15:40:21",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792611633063",
+    "timestamp": "2026-10-21 15:40:33",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792611647962",
+    "timestamp": "2026-10-21 15:40:47",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Enviado"
+  },
+  {
+    "id": "err_1792611657969",
+    "timestamp": "2026-10-21 15:40:57",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Enviado"
+  },
+  {
+    "id": "err_1792611684316",
+    "timestamp": "2026-10-21 15:41:24",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792611692042",
+    "timestamp": "2026-10-21 15:41:32",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792611703421",
+    "timestamp": "2026-10-21 15:41:43",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792611715301",
+    "timestamp": "2026-10-21 15:41:55",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792611728372",
+    "timestamp": "2026-10-21 15:42:08",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792611740165",
+    "timestamp": "2026-10-21 15:42:20",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792611751195",
+    "timestamp": "2026-10-21 15:42:31",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792611763798",
+    "timestamp": "2026-10-21 15:42:43",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792611775806",
+    "timestamp": "2026-10-21 15:42:55",
+    "modulo": "orquestador",
+    "error_traceback": "Error en flujo de grabación 'Comunidades Digitales con Wemany - Carlos Jimenez': Connection closed while reading from the driver",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792612586146",
+    "timestamp": "2026-10-21 15:56:26",
+    "modulo": "orquestador",
+    "error_traceback": "Discrepancia resuelta en Hotmart: Detectada '🔴 EN VIVO - Comunidades Digitales con Wemany - Carlos Jimenez' para programada 'Comunidades Digitales con Wemany - Carlos Jimenez'. Buscador adaptativo conectado.",
+    "estado": "Enviado"
+  },
+  {
+    "id": "err_1792612603156",
+    "timestamp": "2026-10-21 15:56:43",
+    "modulo": "orquestador",
+    "error_traceback": "CRÍTICO: No se localizó lección en vivo para 'Comunidades Digitales con Wemany - Carlos Jimenez' en Hotmart Club. Título en plataforma difiere o aún no fue publicada.",
+    "estado": "Resuelto"
+  },
+  {
+    "id": "err_1792621210956",
+    "timestamp": "2026-10-21 18:20:10",
+    "modulo": "orquestador",
+    "error_traceback": "Discrepancia resuelta en Hotmart: Detectada '🔴 EN VIVO - Estrategias de Venta de Rueda de Comisiones con Marcos Araujo' para programada 'Estrategias para Vender el Producto Rueda de Comisiones'. Buscador adaptativo conectado.",
+    "estado": "Enviado"
+  },
+  {
+    "id": "err_1792621217123",
+    "timestamp": "2026-10-21 18:20:17",
+    "modulo": "orquestador",
+    "error_traceback": "Discrepancia resuelta en Hotmart: Detectada '🔴 EN VIVO - Estrategias de Venta de Rueda de Comisiones con Marcos Araujo' para programada 'Estrategias para Vender el Producto Rueda de Comisiones'. Buscador adaptativo conectado.",
+    "estado": "Enviado"
+  },
+  {
+    "id": "err_1792669309972",
+    "timestamp": "2026-10-22 07:41:49",
+    "modulo": "orquestador",
+    "error_traceback": "Discrepancia resuelta en Hotmart: Detectada '🔴 EN VIVO - 100M LEADS. Prospección Profesional de Alex Hormozi. Curación de Mauricio Duque' para programada '100 Millones de Leads - Alex Hormozi - Curación de Mauricio Duque'. Buscador adaptativo conectado.",
+    "estado": "Enviado"
+  }
+]
