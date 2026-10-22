@@ -87,30 +87,73 @@ async def optimizar_zoom_ahora():
                 resultado["status"] = "sin_pestanas_zoom"
                 return resultado
 
-            # 1. Identificar pestaña principal (la que está dentro de la reunión)
+            # 1. Identificar pestaña principal (priorizando pestaña de grabación activa)
             pagina_activa = None
             for p_info in zoom_pages_info:
-                if p_info["en_reunion"]:
-                    pagina_activa = p_info["page"]
-                    resultado["pestana_principal"] = f"{p_info['title']} ({p_info['url']})"
-                    break
-            
+                try:
+                    is_rec = await p_info["page"].evaluate("() => window.__grabando_mentoria_activa === true")
+                    if is_rec:
+                        pagina_activa = p_info["page"]
+                        resultado["pestana_principal"] = f"[GRABACION ACTIVA] {p_info['title']} ({p_info['url']})"
+                        break
+                except Exception:
+                    pass
+
+            if not pagina_activa:
+                for p_info in zoom_pages_info:
+                    if p_info["en_reunion"]:
+                        pagina_activa = p_info["page"]
+                        resultado["pestana_principal"] = f"{p_info['title']} ({p_info['url']})"
+                        break
+
             # Si ninguna marcó en_reunion de forma estricta, tomar la última (más reciente)
             if not pagina_activa:
                 pagina_activa = zoom_pages_info[-1]["page"]
                 resultado["pestana_principal"] = f"{zoom_pages_info[-1]['title']} ({zoom_pages_info[-1]['url']})"
 
-            # 2. CERRAR PESTAÑAS DUPLICADAS / HUÉRFANAS DE ZOOM (Requerimiento exacto del usuario)
+            # 2. CERRAR PESTAÑAS DUPLICADAS / HUÉRFANAS DE ZOOM (respetando cualquier pestaña en grabación)
             for p_info in zoom_pages_info:
                 p_extra = p_info["page"]
-                if p_extra != pagina_activa:
+                if p_extra != pagina_activa and not p_extra.is_closed():
                     try:
-                        t_extra = p_info["title"]
-                        await p_extra.close()
-                        resultado["pestanas_cerradas"].append(t_extra)
-                        resultado["detalles"].append(f"Cerrada pestaña redundante de Zoom: '{t_extra}'")
+                        is_rec_extra = await p_extra.evaluate("() => window.__grabando_mentoria_activa === true")
+                        if not is_rec_extra:
+                            t_extra = p_info["title"]
+                            await p_extra.close()
+                            resultado["pestanas_cerradas"].append(t_extra)
+                            resultado["detalles"].append(f"Cerrada pestaña redundante de Zoom: '{t_extra}'")
                     except Exception as e_c:
                         resultado["detalles"].append(f"Aviso cerrando pestaña redundante: {e_c}")
+
+            # Inyectar WebRTC Silent Stream Mock en la pestaña activa para evitar spinner infinito de audio
+            try:
+                await pagina_activa.evaluate("""() => {
+                    if (window.__webrtc_guard_injected) return;
+                    window.__webrtc_guard_injected = true;
+                    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                        navigator.mediaDevices.getUserMedia = async (constraints) => {
+                            const tracks = [];
+                            try {
+                                if (constraints && constraints.audio) {
+                                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                                    if (AudioCtx) {
+                                        const ctx = new AudioCtx();
+                                        const dst = ctx.createMediaStreamDestination();
+                                        const track = dst.stream.getAudioTracks()[0];
+                                        if (track) {
+                                            track.enabled = false;
+                                            tracks.push(track);
+                                        }
+                                    }
+                                }
+                            } catch(e) {}
+                            if (tracks.length > 0) return new MediaStream(tracks);
+                            return new MediaStream();
+                        };
+                    }
+                }""")
+            except Exception:
+                pass
 
             # Traer al frente la pestaña principal de la reunión
             await pagina_activa.bring_to_front()
@@ -379,7 +422,7 @@ async def optimizar_zoom_ahora():
         finally:
             if browser:
                 try:
-                    await browser.disconnect()
+                    await browser.close()
                 except Exception:
                     pass
             with open(LOG_FILE, "w", encoding="utf-8") as f:
