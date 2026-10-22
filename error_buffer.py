@@ -218,7 +218,7 @@ def intentar_sincronizar_con_dell(url_antigravity: Optional[str] = None) -> bool
 
 def iniciar_hilo_sincronizacion_background(intervalo_segundos: int = 300) -> threading.Thread:
     """
-    Inicia un hilo demonio ultra-ligero que ejecuta la sincronización silenciosa periódica
+    Inicia un hilo en segundo plano ultra-ligero que ejecuta la sincronización silenciosa periódica
     cada 5 minutos (300 segundos por defecto).
     """
     def _worker():

@@ -41,7 +41,7 @@ El **Bot Universidad Online** es una suite empresarial de automatización desate
   - IP Local: `192.168.100.243`
   - Acceso directo al código, base de datos y logs a través de `Z:\`.
   - Endpoint de sincronización HTTP: `http://192.168.100.243:5005/api/antigravity/sync_errores`
-  - Hilo demonio en Flask envía errores pendientes cada 5 minutos de forma silenciosa.
+  - Hilo en segundo plano en Flask envía errores pendientes cada 5 minutos de forma silenciosa.
 
 ---
 
@@ -57,7 +57,7 @@ El **Bot Universidad Online** es una suite empresarial de automatización desate
 - **`route_builder.py`:** Generador del tablero interactivo de rutas de aprendizaje pedagógicas y sincronizador con Netlify y GitHub Pages.
 - **`scraper.py`:** Extractor inteligente de lecciones y enlaces directamente del HTML de la membresía de Hotmart.
 - **`calendar_sync.py`:** Cliente HTTP para sincronización con el Webhook de Google Apps Script.
-- **`sentinela_daemon.py`:** Demonio autónomo de auto-sanación y auditoría proactiva 24/7 ejecutándose en la Laptop Dell (puerto 5005). Vigila omisiones de horarios, caídas de procesos, reanima el orquestador vía API y administra las reglas de inmunidad permanente.
+- **`sentinela_auditor.py`:** Centinela y Auditor Proactivo 24 Horas ejecutándose en la Laptop Dell (puerto 5005). Vigila omisiones de horarios, caídas de procesos, reanima el orquestador vía API y administra las reglas de inmunidad permanente.
 - **`registro_inmunidad.json`:** Matriz de conocimiento acumulado que documenta las curas estructurales definitivas (INM-001 a INM-006) para garantizar que los errores resueltos nunca se repitan.
 
 ---
@@ -93,7 +93,7 @@ La base de datos contiene las siguientes tablas maestras:
 4. **Preservación Cruda Anti-Destrucción:** Si la conversión de WebM a MP4 sufriera una interrupción, el archivo `.webm` nunca se borra y se preserva en disco con estado `ERROR_REMUXING`.
 5. **Borrado Granular Independiente:** El borrado de un video pesado local en el panel jamás elimina el enlace en Telegram ni la ficha en la App Web.
 6. **Inmunidad Estructural Permanente:** Todo error resuelto se repara de raíz en el código fuente, se registra en `registro_inmunidad.json` y se compila sin regresiones para evitar recurrencias.
-7. **Auditoría Semántica Proactiva 24/7:** El demonio `sentinela_daemon.py` en Dell audita que las clases inicien a tiempo y auto-sana omisiones de forma inmediata.
+7. **Auditoría Semántica Proactiva 24/7:** El servicio `sentinela_auditor.py` en Dell audita que las clases inicien a tiempo y auto-sana omisiones de forma inmediata.
 
 ---
 
@@ -111,14 +111,14 @@ empresarial, modular, resiliente y libre de regresiones.
 DIRECTIVAS ARQUITECTÓNICAS CRÍTICAS:
 1. PLATAFORMA Y COMUNICACIÓN:
    - Laptop Acer (Cliente Operativo: Hotmart, Chrome CDP 9222, Panel Web Flask puerto 8000).
-   - Laptop Dell (Agente Antigravity / IA, IP 192.168.100.243, Centinela Daemon puerto 5005).
+   - Laptop Dell (Agente Antigravity / IA, IP 192.168.100.243, Centinela Auditor puerto 5005).
    - Ruta base de trabajo: Carpeta compartida montada o directorio local del bot.
 2. DEPENDENCIAS REQUERIDAS:
    - Python 3.8+ a 3.12, Flask, Flask-CORS, Playwright 1.28.0 (Windows 8 Node 16 compat), Telethon,
      requests, pytz, schedule, ffmpeg-python (o ejecutable ffmpeg.exe local), reportlab.
 3. MÓDULOS OBLIGATORIOS QUE DEBES RECREAR:
    a) 'error_buffer.py': Sistema de buffer de errores Offline-First en 'registro_errores.json'.
-   b) 'sentinela_daemon.py': Demonio auditor proactivo 24/7 en Dell (puerto 5005) con bucle de auditoría
+   b) 'sentinela_auditor.py': Centinela y Auditor Proactivo 24 Horas en Dell (puerto 5005) con bucle de auditoría
       integral de horarios, salud del orquestador y gestión de 'registro_inmunidad.json'.
    c) 'registro_inmunidad.json': Matriz de reglas de inmunidad permanente (INM-001 a INM-006).
    d) 'database.py': Gestión completa de SQLite ('clases.db') con tabla 'clases_grabadas'.
