@@ -2020,234 +2020,334 @@ async def optimizar_entorno_zoom(page: Any, context: Any = None) -> None:
         pass
 
     try:
-        # 5. Deduplicar pestañas de Zoom
+        # 5. Deduplicar pestañas huérfanas de Zoom (respetando la pestaña activa que está grabando)
         if context:
             all_pages = list(context.pages)
             for p_extra in all_pages:
-                if p_extra != page and "zoom.us" in p_extra.url.lower():
-                    await p_extra.close()
-                    print("\n[Recorder Zoom] 🚪 Pestaña duplicada de Zoom cerrada limpiamente.")
+                if p_extra != page and not p_extra.is_closed() and "zoom.us" in p_extra.url.lower():
+                    try:
+                        is_recording = await p_extra.evaluate("() => window.__grabando_mentoria_activa === true")
+                        if not is_recording:
+                            await p_extra.close()
+                            print("\n[Recorder Zoom] 🚪 Pestaña duplicada/huérfana de Zoom cerrada limpiamente.")
+                    except Exception:
+                        pass
     except Exception:
         pass
 
+
+def asegurar_chrome_depuracion_activo(cdp_url: str = "http://localhost:9222") -> bool:
+    """
+    Verifica si Google Chrome con CDP está respondiendo en el puerto 9222.
+    Si no responde (o fue cerrado manualmente), busca chrome.exe y lo lanza
+    automáticamente con el perfil y banderas de depuración requeridas.
+    """
+    import urllib.request
+    try:
+        with urllib.request.urlopen(f"{cdp_url}/json/version", timeout=1.5) as r:
+            if r.status == 200:
+                return True
+    except Exception:
+        pass
+
+    print(f"\n[Chrome Guard] ⚠️ Google Chrome no detectado en {cdp_url}. Iniciando navegador con CDP...")
+    chrome_paths = [
+        r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+        r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+        os.path.expandvars(r"%LOCALAPPDATA%\Google\Chrome\Application\chrome.exe"),
+        r"C:\Users\David\AppData\Local\Google\Chrome\Application\chrome.exe"
+    ]
+    chrome_exe = None
+    for cp in chrome_paths:
+        if os.path.exists(cp):
+            chrome_exe = cp
+            break
+
+    if not chrome_exe:
+        print("[Chrome Guard] ❌ No se encontró chrome.exe en las rutas habituales del sistema.")
+        return False
+
+    perfil_dir = os.path.join(BASE_DIR, "perfil_chrome")
+    os.makedirs(perfil_dir, exist_ok=True)
+
+    cmd = [
+        chrome_exe,
+        "--remote-debugging-port=9222",
+        f"--user-data-dir={perfil_dir}",
+        "--remote-allow-origins=*",
+        "--disable-background-timer-throttling",
+        "--disable-backgrounding-occluded-windows",
+        "--disable-renderer-backgrounding",
+        "--autoplay-policy=no-user-gesture-required",
+        "--use-fake-ui-for-media-stream",
+        "https://hotmart.com/es/club/suscripcionuniversidadonline/products/7048143"
+    ]
+
+    try:
+        si, flags = obtener_startupinfo_y_flags()
+        subprocess.Popen(cmd, startupinfo=si, creationflags=flags)
+        for _ in range(15):
+            time.sleep(1)
+            try:
+                with urllib.request.urlopen(f"{cdp_url}/json/version", timeout=1.0) as r:
+                    if r.status == 200:
+                        print("[Chrome Guard] ✅ Google Chrome activo y enlazado a puerto 9222.")
+                        return True
+            except Exception:
+                pass
+    except Exception as e_start:
+        print(f"[Chrome Guard] ❌ Error lanzando Google Chrome: {e_start}")
+
+    return False
+
+
 async def grabar_mentoria_zoom_o_voz(
-
     url_objetivo: str,
-
     ruta_salida_mp4: str,
-
     nombre_participante: str = "David Herbas",
-
     max_horas: int = 5,
-
     cdp_url: str = "http://localhost:9222",
-
     id_clase: Optional[str] = None,
-
 ) -> bool:
-
     from playwright.async_api import async_playwright
 
     os.makedirs(os.path.dirname(os.path.abspath(ruta_salida_mp4)), exist_ok=True)
     titulo_limpio = os.path.splitext(os.path.basename(ruta_salida_mp4))[0]
 
     if os.path.exists(ARCHIVO_FRENO_MANUAL):
-
         try:
-
             os.remove(ARCHIVO_FRENO_MANUAL)
-
         except Exception:
-
             pass
 
     es_zoom = "zoom.us" in (url_objetivo or "").lower()
-
     url_web = convertir_url_zoom_a_web(url_objetivo) if es_zoom else url_objetivo
-
     zoom_id_room = extraer_id_sala_zoom(url_objetivo) if es_zoom else None
 
     if zoom_id_room and zoom_id_room in SALAS_ZOOM_ACTIVAS:
-
         print(f"\n[Recorder Zoom] 🛡️ [Anti-Colisión] Ya existe una pestaña/grabación activa para la sala {zoom_id_room}. Omitiendo duplicado.")
-
         return True
 
     if zoom_id_room:
-
         SALAS_ZOOM_ACTIVAS.add(zoom_id_room)
 
-    print(f"\n[Recorder Zoom/Mentoría] 🛡️ Preparando entrada segura como '{nombre_participante}' (Mic/Cámara OFF)...")
+    print(f"\n[Recorder Zoom/Mentoría] 🛡️ Preparando sesión segura como '{nombre_participante}'...")
+
+    # 0. Asegurar que Google Chrome esté activo con depuración remota en el puerto 9222
+    asegurar_chrome_depuracion_activo(cdp_url)
 
     browser = None
-
     page = None
-
     proc_ffmpeg = None
 
     try:
-
         async with async_playwright() as p:
-
             try:
-
                 browser = await p.chromium.connect_over_cdp(cdp_url)
+                context = browser.contexts[0] if browser.contexts else await browser.new_context()
 
-                context = browser.contexts[0]
+                # Reusar pestaña de Zoom existente si ya está abierta en esta sala o en Zoom
+                if es_zoom:
+                    zoom_tabs = [p_tab for p_tab in context.pages if "zoom.us" in p_tab.url.lower() and not p_tab.is_closed()]
+                    if zoom_tabs:
+                        page = zoom_tabs[0]
+                        print(f"[Recorder Zoom] 🔄 Reutilizando pestaña de Zoom existente ({page.url}).")
+                        for extra_tab in zoom_tabs[1:]:
+                            try:
+                                await extra_tab.close()
+                            except Exception:
+                                pass
+                    else:
+                        page = await context.new_page()
+                else:
+                    page = await context.new_page()
 
-                page = await context.new_page()
+                # Inyectar sello de pestaña activa de grabación
+                await page.evaluate("() => { window.__grabando_mentoria_activa = true; }")
 
+                # WebRTC Silent Stream Injection (elimina el icono de carga infinito y protege 100% privacidad)
                 await page.add_init_script("""() => {
-
+                    if (window.__webrtc_guard_injected) return;
+                    window.__webrtc_guard_injected = true;
                     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-
-                        const origGetUserMedia = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
-
                         navigator.mediaDevices.getUserMedia = async (constraints) => {
-
-                            if (constraints && (constraints.audio || constraints.video)) {
-
-                                throw new DOMException('Permission denied by Bot Privacy Guard', 'NotAllowedError');
-
+                            const tracks = [];
+                            try {
+                                if (constraints && constraints.audio) {
+                                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                                    if (AudioCtx) {
+                                        const ctx = new AudioCtx();
+                                        const dst = ctx.createMediaStreamDestination();
+                                        const track = dst.stream.getAudioTracks()[0];
+                                        if (track) {
+                                            track.enabled = false;
+                                            tracks.push(track);
+                                        }
+                                    }
+                                }
+                                if (constraints && constraints.video) {
+                                    const canvas = document.createElement('canvas');
+                                    canvas.width = 640;
+                                    canvas.height = 480;
+                                    const stream = canvas.captureStream ? canvas.captureStream(5) : null;
+                                    if (stream && stream.getVideoTracks().length > 0) {
+                                        const vTrack = stream.getVideoTracks()[0];
+                                        vTrack.enabled = false;
+                                        tracks.push(vTrack);
+                                    }
+                                }
+                            } catch(e) {}
+                            if (tracks.length > 0) {
+                                return new MediaStream(tracks);
                             }
-
-                            return origGetUserMedia(constraints);
-
+                            return new MediaStream();
                         };
-
                     }
-
+                    if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
+                        const origEnum = navigator.mediaDevices.enumerateDevices.bind(navigator.mediaDevices);
+                        navigator.mediaDevices.enumerateDevices = async () => {
+                            const list = await origEnum().catch(() => []);
+                            const hasAudio = list.some(d => d.kind === 'audioinput');
+                            if (!hasAudio) {
+                                return [
+                                    ...list,
+                                    { deviceId: 'default', kind: 'audioinput', label: 'Default - Microphone', groupId: 'default' }
+                                ];
+                            }
+                            return list;
+                        };
+                    }
                 }""")
 
+                # ETAPA 1: PRE-ADMISIÓN PACIENTE (SALA DE ESPERA Y ACCESO)
                 if es_zoom and url_web:
+                    current_url = page.url.lower()
+                    if "zoom.us" not in current_url:
+                        print(f"[Recorder Zoom] Navegando al cliente web de Zoom: {url_web}")
+                        await page.goto(url_web, wait_until="domcontentloaded", timeout=45000)
+                    else:
+                        print(f"[Recorder Zoom] Pestaña Zoom ya posicionada en: {page.url}")
 
-                    print(f"[Recorder Zoom] Navegando al cliente web de Zoom: {url_web}")
+                    t_espera_inicio = time.time()
+                    max_espera_sala = 2700  # Hasta 45 minutos esperando pacientemente la admisión humana
+                    ultimo_log_espera = 0
+                    admitido_en_reunion = False
 
-                    await page.goto(url_web, wait_until="domcontentloaded", timeout=30000)
+                    print(f"[Recorder Zoom] ⏳ Fase Pre-Admisión: Monitoreando sala de espera y solicitud de entrada...")
 
-                    await asyncio.sleep(4)
+                    while (time.time() - t_espera_inicio) < max_espera_sala:
+                        if page.is_closed():
+                            print("[Recorder Zoom] 🛑 Pestaña de Zoom cerrada antes de la admisión.")
+                            return False
 
-                    try:
+                        if os.path.exists(ARCHIVO_FRENO_MANUAL) or (id_clase and database.es_clase_cancelada(id_clase)):
+                            print("[Recorder Zoom] 🛑 Parada o cancelación manual solicitada en sala de espera.")
+                            return False
 
-                        campo_nombre = page.locator('input#input-for-name, input[name="inputname"], input[placeholder*="nombre" i], input[placeholder*="name" i]').first
+                        texto_pag = (await page.evaluate("() => document.body ? document.body.innerText : ''")).lower()
 
-                        if await campo_nombre.count() > 0:
+                        # 1. Chequear estados terminales (eliminado por el anfitrión o reunión terminada)
+                        if any(f in texto_pag for f in [
+                            "el anfitrión lo ha eliminado", "removed by the host", "no puede volver a unirse",
+                            "you cannot rejoin", "ha sido eliminado de la reunión"
+                        ]):
+                            print("\n[Recorder Zoom] ⚠️ El anfitrión ha retirado el acceso o denegado la entrada a la sala.")
+                            print("[Recorder Zoom] 🛑 Deteniendo reintentos para no incomodar al anfitrión humano.")
+                            return False
 
-                            await campo_nombre.fill(nombre_participante)
+                        if any(f in texto_pag for f in [
+                            "esta reunión ha finalizado", "the host has ended this meeting",
+                            "reunión finalizada por el anfitrión", "meeting has been ended"
+                        ]):
+                            print("\n[Recorder Zoom] 🏁 La reunión de Zoom ya ha finalizado.")
+                            return False
 
-                            print(f"[Recorder Zoom] ✍️ Nombre '{nombre_participante}' ingresado correctamente.")
+                        # 2. Chequear si estamos en Preview / Ingresar Nombre
+                        try:
+                            campo_nombre = page.locator('input#input-for-name, input[name="inputname"], input[placeholder*="nombre" i], input[placeholder*="name" i]').first
+                            if await campo_nombre.count() > 0 and await campo_nombre.is_visible():
+                                val_actual = await campo_nombre.input_value()
+                                if val_actual != nombre_participante:
+                                    await campo_nombre.fill(nombre_participante)
+                                    print(f"[Recorder Zoom] ✍️ Nombre '{nombre_participante}' ingresado en el campo de Zoom.")
 
-                    except Exception:
+                                # Clic en botón Entrar / Join
+                                btn_join = page.locator('button.preview-join-button, button:has-text("Unirse"), button:has-text("Join"), button:has-text("Entrar")').first
+                                if await btn_join.count() > 0 and await btn_join.is_visible():
+                                    await btn_join.click()
+                                    print("[Recorder Zoom] 🔘 Botón 'Entrar' presionado. Esperando respuesta del anfitrión...")
+                                    await asyncio.sleep(3)
+                        except Exception:
+                            pass
 
-                        pass
-
-                    try:
-
-                        await page.evaluate("""() => {
-
-                            const btns = Array.from(document.querySelectorAll('button[aria-label]'));
-
-                            for (const b of btns) {
-
-                                const lbl = (b.getAttribute('aria-label') || '').toLowerCase();
-
-                                if ((lbl.includes('mute') && !lbl.includes('unmute')) || (lbl.includes('stop video') || lbl.includes('detener video'))) {
-
-                                    b.click();
-
-                                }
-
-                            }
-
+                        # 3. Chequear si ya fuimos ADMITIDOS dentro de la reunión (EN_REUNION)
+                        en_reunion = await page.evaluate("""() => {
+                            const inMeetingEl = !!document.querySelector('#zmmtg-root, .meeting-client, .share-container, .meeting-app, #wc-footer');
+                            const hasToolbar = !!document.querySelector('.footer, .meeting-control, [aria-label*="Vista" i], [aria-label*="View" i], .speaker-view-button');
+                            const hasAudioModal = !!document.querySelector('button.join-audio-by-computer, button.btn-join-audio, button[aria-label*="computadora" i]');
+                            const isPreview = !!document.querySelector('input#input-for-name, input[name="inputname"], button.preview-join-button');
+                            return (inMeetingEl || hasToolbar || hasAudioModal) && !isPreview;
                         }""")
 
-                    except Exception:
+                        if en_reunion:
+                            print(f"\n[Recorder Zoom] 🎉 ¡ADMISIÓN CONFIRMADA! Bot dentro de la sala de Zoom.")
+                            admitido_en_reunion = True
+                            break
 
-                        pass
+                        # 4. Estado de Sala de Espera (Aguardar pacientemente)
+                        ahora = time.time()
+                        if ahora - ultimo_log_espera >= 20:
+                            ultimo_log_espera = ahora
+                            min_esperados = int((ahora - t_espera_inicio) // 60)
+                            seg_esperados = int((ahora - t_espera_inicio) % 60)
+                            sys.stdout.write(f"\r[Recorder Zoom] ⏳ En sala de espera ({min_esperados}m {seg_esperados}s). Aguardando pacientemente admisión del anfitrión...")
+                            sys.stdout.flush()
 
-                    try:
+                        await asyncio.sleep(3)
 
-                        btn_join = page.locator('button.preview-join-button, button:has-text("Unirse"), button:has-text("Join"), button:has-text("Entrar")').first
+                    if not admitido_en_reunion:
+                        print("\n[Recorder Zoom] ⏱️ Tiempo límite de espera en sala alcanzado sin admisión.")
+                        return False
 
-                        if await btn_join.count() > 0:
-
-                            await btn_join.click()
-
-                            await asyncio.sleep(5)
-
-                    except Exception:
-
-                        pass
-
-                    try:
-
-                        btn_audio = page.locator('button:has-text("Audio por computadora"), button:has-text("Join Audio by Computer"), button:has-text("Entrar al audio por computadora")').first
-
-                        if await btn_audio.count() > 0:
-
-                            await btn_audio.click()
-
-                    except Exception:
-
-                        pass
-
+                # ETAPA 2: POST-ADMISIÓN (OPTIMIZACIÓN INMEDIATA Y GRABACIÓN FFMPEG)
                 dispositivos = detectar_dispositivos_audio()
-
                 disp_audio = dispositivos[0] if dispositivos else None
-
                 is_voice_chat = "chat_voz" in (url_objetivo or "").lower() or not es_zoom
 
                 if es_zoom:
-
                     try:
-
                         enfocar_y_maximizar_chrome()
-
                         await page.bring_to_front()
-
                         await optimizar_entorno_zoom(page, context)
-
+                        await asyncio.sleep(1.5)
+                        await optimizar_entorno_zoom(page, context)
                     except Exception:
-
                         pass
 
+                # Configurar comando FFmpeg para grabar
                 if is_voice_chat:
-
                     print("\n[Recorder Mentoría] 🎙️ Grabando sesión de voz directa en segundo plano (CPU < 3%)...")
-
                     cmd = [FFMPEG_EXE, "-y"]
-
                     if disp_audio:
-
                         cmd.extend(["-f", "dshow", "-i", f"audio={disp_audio}"])
-
                     else:
-
                         cmd.extend(["-f", "dshow", "-i", "audio=dummy"])
-
                     cmd.extend(["-vn", "-ac", "2", "-ar", "44100", "-c:a", "aac", "-b:a", "128k", ruta_salida_mp4])
-
                 else:
-
                     enc_nombre, enc_flags = detectar_encoder_video_optimo()
-
                     cmd = [FFMPEG_EXE, "-y", "-f", "gdigrab", "-framerate", "24", "-i", "desktop"]
-
                     if disp_audio:
                         cmd.extend(["-f", "dshow", "-i", f"audio={disp_audio}"])
-
                     cmd.extend(["-vf", "scale=1280:720"])
                     cmd.extend(enc_flags)
                     cmd.extend(["-r", "24", "-pix_fmt", "yuv420p", "-movflags", "+faststart"])
-
                     if disp_audio:
                         cmd.extend(["-c:a", "aac", "-b:a", "128k"])
-
                     cmd.append(ruta_salida_mp4)
 
                 si, flags = obtener_startupinfo_y_flags()
                 log_mentor_f = open(LOG_FFMPEG_FILE, "a", encoding="utf-8", errors="replace")
-                log_mentor_f.write(f"\n--- [{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] GRABACION INICIADA: {titulo_limpio} ---\n")
+                log_mentor_f.write(f"\n--- [{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] GRABACION MENTORIA INICIADA: {titulo_limpio} ---\n")
                 log_mentor_f.write(f"Comando: {' '.join(cmd)}\n")
                 log_mentor_f.flush()
 
@@ -2260,15 +2360,12 @@ async def grabar_mentoria_zoom_o_voz(
                     creationflags=flags
                 )
 
-                # VALIDACIÓN DINÁMICA ANTI-CRASH:
-                # Si el encoder por hardware falla al inicializar con el desktop,
-                # detectamos la caída en los primeros 1.5s y activamos el PLAN B (Software libx264 ultrafast threads 2)
+                # Fallback hardware crash check
                 if not is_voice_chat:
                     await asyncio.sleep(1.5)
                     if proc_ffmpeg.poll() is not None:
                         print(f"\n[Recorder Mentoría] ⚠️ El encoder '{enc_nombre}' falló al arrancar (código {proc_ffmpeg.returncode}).")
                         print("[Recorder Mentoría] 🛡️ [ACTIVANDO PLAN B] Cayendo a codificación segura libx264 (-preset ultrafast, -threads 2)...")
-
                         cmd_fallback = [FFMPEG_EXE, "-y", "-f", "gdigrab", "-framerate", "24", "-i", "desktop"]
                         if disp_audio:
                             cmd_fallback.extend(["-f", "dshow", "-i", f"audio={disp_audio}"])
@@ -2280,10 +2377,6 @@ async def grabar_mentoria_zoom_o_voz(
                         if disp_audio:
                             cmd_fallback.extend(["-c:a", "aac", "-b:a", "128k"])
                         cmd_fallback.append(ruta_salida_mp4)
-
-                        log_mentor_f.write(f"\n--- [{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] FALLBACK A PLAN B SOFTWARE (libx264 threads=2) ---\n")
-                        log_mentor_f.write(f"Comando: {' '.join(cmd_fallback)}\n")
-                        log_mentor_f.flush()
 
                         proc_ffmpeg = subprocess.Popen(
                             cmd_fallback,
@@ -2297,174 +2390,113 @@ async def grabar_mentoria_zoom_o_voz(
                         if proc_ffmpeg.poll() is None:
                             print("[Recorder Mentoría] ✅ [PLAN B ACTIVO] Grabación de emergencia por software estabilizada.")
 
-                print("[Recorder Mentoría] 🔴 Grabando mentoría (Autocorte inteligente activado)...")
+                print("\n[Recorder Mentoría] 🔴 Grabando mentoría en vivo (Autocorte inteligente activado)...")
 
                 t_inicio = time.time()
-
                 max_segundos = max_horas * 3600
 
                 while True:
-
                     transcurrido = int(time.time() - t_inicio)
-
                     sys.stdout.write(f"\r   Grabando Mentoría en vivo... {transcurrido // 60}m {transcurrido % 60}s transcurridos (Mic/Cámara: OFF)")
-
                     sys.stdout.flush()
 
                     if transcurrido >= max_segundos:
-
                         print("\n[Recorder Mentoría] ⏱️ Límite máximo de seguridad alcanzado (5h). Cerrando grabación...")
-
                         break
 
                     if os.path.exists(ARCHIVO_FRENO_MANUAL) or (id_clase and database.es_clase_cancelada(id_clase)):
-
                         print("\n[Recorder Mentoría] 🛑 Parada o cancelación manual solicitada por el usuario. Cortando grabación...")
-
                         try:
-
                             if os.path.exists(ARCHIVO_FRENO_MANUAL):
-
                                 os.remove(ARCHIVO_FRENO_MANUAL)
-
                         except Exception:
-
                             pass
-
                         break
 
                     if transcurrido > 10 and transcurrido % 10 == 0:
-
                         if es_zoom:
-
                             try:
-
                                 await optimizar_entorno_zoom(page, context)
-
                             except Exception:
-
                                 pass
 
                         try:
-
                             if page.is_closed():
-
                                 print("\n[Recorder Mentoría] 🏁 Pestaña de la reunión cerrada. Finalizando grabación...")
-
                                 break
 
                             texto_pag = (await page.evaluate("() => document.body ? document.body.innerText : ''")).lower()
-
                             frases_fin = [
-
                                 "el anfitrión ha finalizado esta reunión",
-
                                 "the host has ended this meeting",
-
                                 "esta reunión ha sido finalizada por el anfitrión",
-
                                 "meeting has been ended by host",
-
                                 "thank you for attending",
-
                                 "gracias por asistir",
-
+                                "el anfitrión lo ha eliminado",
+                                "removed by the host"
                             ]
-
                             if any(f in texto_pag for f in frases_fin):
-
                                 print("\n[Recorder Mentoría] 🏁 ¡El mentor ha finalizado la reunión de Zoom! Cortando grabación automáticamente...")
-
                                 break
-
                         except Exception:
-
                             pass
 
                     await asyncio.sleep(2)
 
             finally:
-
-                # a) Caza de FFmpeg zombi: verificación y terminación forzosa en 5s si no responde
-
-                if proc_ffmpeg and proc_ffmpeg.poll() is None:
-
-                    print("\n[Recorder Mentoría] 🛑 Finalizando proceso de FFmpeg...")
-
+                # Liberar sello de grabación activa
+                if page and not page.is_closed():
                     try:
-
-                        if proc_ffmpeg.stdin:
-
-                            proc_ffmpeg.stdin.write(b"q\n")
-
-                            proc_ffmpeg.stdin.flush()
-
-                        proc_ffmpeg.wait(timeout=5)
-
+                        await page.evaluate("() => { window.__grabando_mentoria_activa = false; }")
                     except Exception:
+                        pass
 
+                # Finalizar FFmpeg con gracia
+                if proc_ffmpeg and proc_ffmpeg.poll() is None:
+                    print("\n[Recorder Mentoría] 🛑 Finalizando proceso de FFmpeg...")
+                    try:
+                        if proc_ffmpeg.stdin:
+                            proc_ffmpeg.stdin.write(b"q\n")
+                            proc_ffmpeg.stdin.flush()
+                        proc_ffmpeg.wait(timeout=5)
+                    except Exception:
                         pass
 
                     if proc_ffmpeg.poll() is None:
-
                         try:
-
                             proc_ffmpeg.terminate()
-
                             proc_ffmpeg.wait(timeout=5)
-
                         except Exception:
-
                             pass
 
                     if proc_ffmpeg.poll() is None:
-
                         try:
-
                             proc_ffmpeg.kill()
-
                         except Exception:
-
                             pass
 
-                # b) Cierre explícito de la pestaña de Chrome
-
+                # Cierre de la pestaña de reunión
                 try:
-
                     if page and not page.is_closed():
-
                         await page.close()
-
                         print("[Recorder Mentoría] 🚪 Pestaña de reunión cerrada limpiamente.")
-
                 except Exception:
-
                     pass
 
-                # c) Cierre explícito de la conexión de Playwright con el CDP
-
+                # Cierre de conexión CDP
                 try:
-
                     if browser:
-
-                        await browser.disconnect()
-
+                        await browser.close()
                 except Exception:
-
                     pass
 
     except Exception as e:
-
         print(f"\n[!] Error durante la grabación de la mentoría: {e}")
-
         return False
-
     finally:
-
         if zoom_id_room:
-
             SALAS_ZOOM_ACTIVAS.discard(zoom_id_room)
-
         gc.collect()
 
     return verificar_integridad_video(ruta_salida_mp4)
