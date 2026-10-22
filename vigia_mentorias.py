@@ -494,7 +494,7 @@ def analizar_aporte_telegram_con_gemini(
 
     }
 
-    for mod in dict.fromkeys([modelo_cfg, "gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]):
+    for mod in dict.fromkeys([modelo_cfg, "gemini-3.8-flash", "gemini-3.5-flash", "gemini-flash-latest"]):
 
         if not mod:
 
@@ -1484,12 +1484,8 @@ async def procesar_mensaje_vigia(event_or_msg, chat_title: str, nombre_mentor: s
         ya_en_bd = database.es_zoom_ya_registrado_bd(zoom_id)
 
         if ya_en_cache or ya_en_bd:
-
             safe_print(f"\n{prefix} 🛡️ [Anti-Colisión Zoom] Enlace de sala Zoom {zoom_id} detectado en '{chat_title}' ya fue procesado/agendado. Deduplicando evento.")
-
             return
-
-        ZOOM_LINKS_PROCESADOS[zoom_id] = ahora_ts
 
     # -------------------------------------------------------------------------
 
@@ -1661,8 +1657,18 @@ async def procesar_mensaje_vigia(event_or_msg, chat_title: str, nombre_mentor: s
     )
 
     if not analisis or not analisis.get("es_relevante"):
-
-        return
+        if enlace_zoom_detectado:
+            safe_print(f"{prefix} ⚡ [Zoom Fallback Autónomo] Programando reunión Zoom directamente sin dependencia de IA.")
+            analisis = {
+                "es_relevante": True,
+                "categoria": "REUNION_VIVO",
+                "titulo": f"Mentoría en Vivo ({chat_title})",
+                "enlace_zoom": enlace_zoom_detectado,
+                "iniciar_ahora": True,
+                "duracion_estimada_minutos": 120
+            }
+        else:
+            return
 
     # 2. Descarga Condicional Autorizada ÚNICAMENTE para contenido de alto valor
 
@@ -1818,6 +1824,11 @@ async def procesar_mensaje_vigia(event_or_msg, chat_title: str, nombre_mentor: s
 
         calendar_sync.actualizar_estado_evento(id_clase, titulo_agenda, "⏳ [Agendada]", inicio_iso, fin_iso, cfg)
 
+        if enlace_zoom_detectado:
+            zoom_id = extraer_id_sala_zoom(enlace_zoom_detectado)
+            if zoom_id:
+                ZOOM_LINKS_PROCESADOS[zoom_id] = time.time()
+
         safe_print(f"✅ ¡Mentoría Agendada! {titulo_agenda} | Inicia: {dt_ini.strftime('%H:%M')}")
 
     else:
@@ -1933,9 +1944,9 @@ async def procesar_mensaje_vigia(event_or_msg, chat_title: str, nombre_mentor: s
             route_builder.generar_tablero_rutas(auto_deploy=True)
 
 async def ejecutar_barrido_historico(client: TelegramClient, chats_vigilados: Dict[int, Dict[str, Any]], cfg: dict):
-
     """Realiza un barrido histórico (catch-up) al iniciar para procesar todo lo enviado mientras el bot estuvo apagado."""
-
+    gemini_key = cfg.get("gemini_api_key")
+    modelo_cfg = cfg.get("gemini_model", "gemini-3.8-flash")
     ultima_iso = database.obtener_ultima_ejecucion_vigia()
 
     tz_local = pytz.timezone("America/La_Paz")

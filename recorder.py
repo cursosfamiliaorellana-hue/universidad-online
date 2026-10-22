@@ -349,16 +349,23 @@ def restaurar_consola():
         pass
 
 def convertir_url_zoom_a_web(url_zoom: str) -> str:
-
     if not url_zoom:
-
         return ""
-
     if "/wc/join/" in url_zoom:
-
         return url_zoom
-
     return re.sub(r"/j/(\d+)", r"/wc/join/\1", url_zoom)
+
+def extraer_id_sala_zoom(url: str) -> str:
+    """Extrae el ID numérico único de una sala de Zoom."""
+    if not url:
+        return ""
+    m = re.search(r"/(?:j|w|wc/join)/(\d{8,13})", url)
+    if m:
+        return m.group(1)
+    m2 = re.search(r"/(\d{8,13})", url)
+    if m2:
+        return m2.group(1)
+    return ""
 
 def normalizar_texto_busqueda(texto: str) -> str:
     if not texto:
@@ -1830,6 +1837,7 @@ async def grabar_mentoria_zoom_o_voz(
     from playwright.async_api import async_playwright
 
     os.makedirs(os.path.dirname(os.path.abspath(ruta_salida_mp4)), exist_ok=True)
+    titulo_limpio = os.path.splitext(os.path.basename(ruta_salida_mp4))[0]
 
     if os.path.exists(ARCHIVO_FRENO_MANUAL):
 

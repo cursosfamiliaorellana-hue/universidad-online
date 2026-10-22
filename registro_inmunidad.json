@@ -58,5 +58,15 @@
     "solucion_definitiva": "Buscador Adaptativo con tokenización normalizada, stopwords, pesos de relevancia y detección de flags 'EN VIVO' (Score adaptativo > 15).",
     "estado": "INMUNIZADO_PERMANENTE",
     "fecha_resolucion": "2026-10-21"
+  },
+  {
+    "id": "INM-007",
+    "titulo": "Bloqueo en Detección y Grabación de Mentorías Zoom en Telegram",
+    "modulo": "vigia_mentorias.py / recorder.py",
+    "sintoma": "Al enviarse un enlace de Zoom por Telegram, el vigía lo descartaba silenciosamente y lo bloqueaba en caché con 'Anti-Colisión Zoom', o el grabador fallaba con name 'extraer_id_sala_zoom' o 'titulo_limpio' is not defined.",
+    "causa_raiz": "1) Caching prematuro de ZOOM_LINKS_PROCESADOS antes de agendar. 2) Modelos Gemini obsoletos (404) descartaban el enlace como no relevante. 3) Funciones y variables 'extraer_id_sala_zoom' y 'titulo_limpio' ausentes en scope de recorder.py.",
+    "solucion_definitiva": "En vigia_mentorias.py se implementó Fallback Autónomo que agenda reuniones Zoom inmediatamente sin dependencia obligatoria de IA, se difirió el cache a pos-registro, se actualizaron modelos Gemini a 3.8/3.5 Flash, y se definieron extraer_id_sala_zoom y titulo_limpio en recorder.py.",
+    "estado": "INMUNIZADO_PERMANENTE",
+    "fecha_resolucion": "2026-10-22"
   }
 ]

@@ -236,8 +236,8 @@ def auditar_salud_integral():
                 if en_ventana_critica:
                     slug = id_c.replace(" ", "_")
                     grab_dir = os.path.join(BASE_DIR, "grabaciones")
-                    webms = glob.glob(os.path.join(grab_dir, "**", f"*{slug}*.webm"), recursive=True) if os.path.exists(grab_dir) else []
-                    archivos_reales = [f for f in webms if os.path.isfile(f) and os.path.getsize(f) > 1024 * 1024]
+                    archivos = glob.glob(os.path.join(grab_dir, "**", f"*{slug}*.*"), recursive=True) if os.path.exists(grab_dir) else []
+                    archivos_reales = [f for f in archivos if os.path.isfile(f) and f.lower().endswith((".webm", ".mp4")) and os.path.getsize(f) > 512 * 1024]
 
                     # Si el estado es PENDIENTE o ERROR y NO hay archivos reales
                     if estado in ("PENDIENTE", "ERROR") and not archivos_reales:
