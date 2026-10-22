@@ -33,7 +33,7 @@ Flashcards 3D, Checklist LocalStorage, Mapa Panorámico"]
 
 1. **💻 Laptop Acer (El Motor de Grabación y Procesamiento):**
    - Es la máquina física donde reside el repositorio compartido en red (`\\192.168.100.229\Bot_UniversidadOnline`).
-   - Ejecuta los demonios autónomos en **Modo Fantasma (100% invisible con `pythonw.exe`)**: Google Chrome en puerto CDP 9222, FFmpeg para captura en segundo plano con bajo consumo de CPU, el Vigía de Telegram con barrido histórico y captura en vivo vía Telegram Web, y el motor de IA Gemini / NotebookLM.
+   - Ejecuta los servicios y centinelas autónomos en **Modo Fantasma (100% invisible con `pythonw.exe`)**: Google Chrome en puerto CDP 9222, FFmpeg para captura en segundo plano con bajo consumo de CPU, el Vigía de Telegram con barrido histórico y captura en vivo vía Telegram Web, y el motor de IA Gemini / NotebookLM.
 2. **💻 Laptop Dell (La Estación de Control y Monitoreo):**
    - Conectada a la Acer mediante la unidad de red mapeada `Z:\`.
    - Permite al usuario acceder al **Panel de Control Web (`http://127.0.0.1:8000`)** o ejecutar el Programador Manual, agendar clases, colocar archivos en las carpetas de Ingesta Manual, supervisar logs en vivo mediante consolas virtuales plegables o pausar el Vigía sin intervenir físicamente en la pantalla de la Acer.
@@ -160,7 +160,7 @@ Examina la base de datos y el disco en busca de grabaciones que hayan quedado pe
 Marca una clase para ser re-grabada en el siguiente horario disponible, manteniendo intactos los videos y enlaces actuales en la App Web hasta que la nueva grabación termine satisfactoriamente.
 
 ### 10. 🛑 Hot-Cancel en Tiempo Real
-Permite cancelar una grabación en curso o una tarea pendiente de la cola sin necesidad de reiniciar demonios ni apagar el sistema.
+Permite cancelar una grabación en curso o una tarea pendiente de la cola sin necesidad de reiniciar procesos ni apagar el sistema.
 
 ---
 
@@ -249,7 +249,27 @@ Las clases con mayor potencial e impacto práctico se destacan con la insignia *
 
 ---
 
-## 8. 🛡️ Protocolo de Recuperación ante Desastres (Disaster Recovery)
+## 8. 🛡️ Centinela y Auditor Proactivo 24 Horas & Optimización Visual de Zoom
+
+El sistema cuenta con un **Centinela y Auditor Proactivo 24 Horas** ejecutándose de forma ininterrumpida en la Laptop Dell (puerto `5005`):
+
+### 👁️ Vigilancia y Auto-Sanación Inmediata
+- **Auditoría de Horarios:** Verifica cada 25 segundos que las clases y mentorías agendadas en `clases.db` arranquen puntualmente. Si una clase en horario no ha iniciado, dispara automáticamente re-grabación forzada y notifica al Orquestador.
+- **Protección de Grabaciones en Vivo:** Si el Orquestador o el grabador se encuentran en estado `GRABANDO`, el Centinela protege el proceso activo garantizando 0% de interrupciones.
+- **Vigilancia de Anuncios en Telegram:** Inspecciona continuamente los registros de Telegram. Si se detecta un enlace de Zoom en los últimos minutos que no haya sido agendado, el Centinela lo rescata y lo agenda vía API inmediatamente.
+- **Matriz de Inmunidad Permanente (`registro_inmunidad.json`):** Todo error resuelto se documenta estructuralmente (INM-001 a INM-008) para que no vuelva a ocurrir nunca más.
+
+### 🎥 Optimización Visual Automática de Zoom Web
+Durante la captura de cualquier mentoría de Zoom, el motor ejecuta `optimizar_entorno_zoom()` cada 10 segundos:
+1. **Presentación Maximizada ('Lado a lado: orador'):** Conmuta la vista de Zoom para que la pantalla compartida o diapositivas queden en formato grande y legible, mientras el mentor expositor permanece visible de forma compacta a un costado o arriba.
+2. **Conexión de Audio Post-Sala de Espera:** Contempla el tiempo de espera (1 a 2 minutos) hasta que el bot anfitrión admite la entrada. Al ser admitido, detecta el diálogo modal y conecta automáticamente *"Audio por computadora"* (*"Join Audio by Computer"*).
+3. **Supresión de Banners de Aceleración y Notificaciones:** Inyecta reglas de estilo persistentes y presiona los botones de cierre 'X' para descartar avisos de aceleración de gráficos por hardware, alertas flotantes y cookies que tapen el video grabado.
+4. **Privacidad Blindada:** Garantiza en todo momento que el Micrófono y la Cámara del bot permanezcan estrictamente en **OFF/MUTED**.
+5. **Deduplicación de Pestañas:** Inspecciona el navegador y cierra limpiamente cualquier pestaña huérfana o duplicada de Zoom.
+
+---
+
+## 9. 🛡️ Protocolo de Recuperación ante Desastres (Disaster Recovery)
 
 El sistema implementa una arquitectura de **Resiliencia Total y Desacoplamiento de Datos**:
 - **El Almacén Multimedia:** Los videos residen en los canales privados de Telegram (almacenamiento ilimitado y gratuito de alta velocidad con Telethon y `cryptg`).

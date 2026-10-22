@@ -1818,6 +1818,218 @@ async def grabar_stream_hotmart(
                     print(f"[Recorder] Aviso actualizando BD a ERROR_REMUXING: {e_db}")
         return False
 
+async def optimizar_entorno_zoom(page: Any, context: Any = None) -> None:
+    """
+    Optimización continua de Zoom Web Client:
+    1. Descartar Banners flotantes (aceleración por hardware, cookies, notificaciones)
+    2. Conectar Audio por Computadora automáticamente tras la admisión del bot en la sala de espera
+    3. Asegurar Privacidad (Micrófono y Cámara estrictamente OFF)
+    4. Configurar Vista: Lado a lado: orador (Side-by-side: Speaker) con presentación grande y orador en esquina/arriba
+    5. Deduplicar pestañas huérfanas de Zoom
+    """
+    if not page or page.is_closed():
+        return
+    try:
+        # 0. Descartar modal 'Alerta de reunión' ("El anfitrión no permite que los participantes reactiven...")
+        await page.evaluate("""() => {
+            const modales = Array.from(document.querySelectorAll('.zm-modal, div[role="dialog"], .modal-dialog, .common-modal, .zmmtg-dialog'));
+            for (const m of modales) {
+                const txt = (m.innerText || '').toLowerCase();
+                if (txt.includes('alerta') || txt.includes('anfitrión') || txt.includes('participantes') || txt.includes('audio') || txt.includes('host is not allowing')) {
+                    const btns = Array.from(m.querySelectorAll('button'));
+                    for (const b of btns) {
+                        const bTxt = (b.innerText || '').toLowerCase().trim();
+                        if (bTxt === 'aceptar' || bTxt === 'ok' || bTxt === 'entendido' || bTxt === 'dismiss' || bTxt === 'close') {
+                            b.click();
+                            break;
+                        }
+                    }
+                    m.style.display = 'none';
+                }
+            }
+        }""")
+
+        # 1. Privacidad: Mic/Cam OFF (NUNCA pulsar si dice "cancelar silenciar", "reactivar" o "unmute")
+        await page.evaluate("""() => {
+            const btns = Array.from(document.querySelectorAll('button'));
+            for (const b of btns) {
+                const aria = (b.getAttribute('aria-label') || '').toLowerCase();
+                const title = (b.getAttribute('title') || '').toLowerCase();
+                const txt = (b.innerText || '').toLowerCase();
+                
+                const estaSilenciado = (
+                    aria.includes('reactivar') || aria.includes('cancelar silenciar') || aria.includes('unmute') ||
+                    title.includes('reactivar') || title.includes('cancelar silenciar') || title.includes('unmute') ||
+                    txt.includes('reactivar') || txt.includes('cancelar silenciar') || txt.includes('unmute')
+                );
+                if (estaSilenciado) {
+                    continue;
+                }
+                
+                const estaEncendido = (
+                    (aria.includes('mute') && !aria.includes('unmute')) ||
+                    (aria.includes('silenciar') && !aria.includes('cancelar') && !aria.includes('reactivar')) ||
+                    (title.includes('silenciar') && !title.includes('cancelar') && !title.includes('reactivar')) ||
+                    (txt.includes('silenciar') && !txt.includes('cancelar') && !txt.includes('reactivar'))
+                );
+                if (estaEncendido) {
+                    b.click();
+                }
+                
+                if (aria.includes('stop video') || aria.includes('detener video') ||
+                    title.includes('detener video') || txt.includes('detener video')) {
+                    b.click();
+                }
+            }
+        }""")
+    except Exception:
+        pass
+
+    try:
+        # 2. Descartar Banners Molestos (Aceleración de hardware, cookies, etc.)
+        await page.evaluate("""() => {
+            const styleId = 'anti-banner-zoom-guard';
+            if (!document.getElementById(styleId)) {
+                const style = document.createElement('style');
+                style.id = styleId;
+                style.textContent = `
+                    div[class*="notification" i],
+                    div[class*="banner" i],
+                    div[role="alert" i],
+                    div[class*="hardware-acceleration" i],
+                    div[class*="toast" i],
+                    .announcement-banner,
+                    .z-notification {
+                        display: none !important;
+                        visibility: hidden !important;
+                        opacity: 0 !important;
+                        pointer-events: none !important;
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+            const closeSelectors = [
+                'button[aria-label*="close" i]',
+                'button[aria-label*="cerrar" i]',
+                'button[aria-label*="dismiss" i]',
+                'button.close',
+                'button.notification-close',
+                'button[title*="cerrar" i]',
+                'button[title*="close" i]',
+                '.banner-close'
+            ];
+            for (const sel of closeSelectors) {
+                const btns = document.querySelectorAll(sel);
+                for (const b of btns) {
+                    try { b.click(); } catch(e) {}
+                }
+            }
+        }""")
+    except Exception:
+        pass
+
+    try:
+        # 3. Conectar Audio por Computadora
+        audio_selectors = [
+            'button:has-text("Audio por computadora")',
+            'button:has-text("Entrar al audio por computadora")',
+            'button:has-text("Join Audio by Computer")',
+            'button:has-text("Join Audio")',
+            'button:has-text("Conectar audio")',
+            'button.join-audio-by-computer',
+            'button.btn-join-audio'
+        ]
+        for sel in audio_selectors:
+            btn_audio = page.locator(sel).first
+            if await btn_audio.count() > 0 and await btn_audio.is_visible():
+                await btn_audio.click()
+                print("\n[Recorder Zoom] 🔊 Audio por computadora conectado exitosamente.")
+                await asyncio.sleep(1)
+                break
+    except Exception:
+        pass
+
+    try:
+        # 4. Vista Lado a lado: orador (Presentación Grande + Orador visible)
+        await page.evaluate("""async () => {
+            const validCssSelectors = [
+                'button[aria-label*="View" i]',
+                'button[aria-label*="Vista" i]',
+                'button[title*="Vista" i]',
+                'button[title*="View" i]',
+                '#viewOptionsTrigger',
+                'button.speaker-view-button',
+                'button.view-control-button',
+                '.view-options-button'
+            ];
+            let viewBtn = null;
+            for (const sel of validCssSelectors) {
+                try {
+                    const el = document.querySelector(sel);
+                    if (el && (el.offsetWidth > 0 || el.offsetHeight > 0)) {
+                        viewBtn = el;
+                        break;
+                    }
+                } catch(e) {}
+            }
+            if (!viewBtn) {
+                const allButtons = Array.from(document.querySelectorAll('button, div[role="button"]'));
+                for (const b of allButtons) {
+                    const txt = (b.innerText || b.textContent || '').trim().toLowerCase();
+                    const aria = (b.getAttribute('aria-label') || '').trim().toLowerCase();
+                    if ((txt === 'vista' || txt === 'view' || aria === 'vista' || aria === 'view' || txt.includes('vista') || aria.includes('vista')) &&
+                        !txt.includes('pantalla') && !txt.includes('participantes') && !txt.includes('chat')) {
+                        if (b.offsetWidth > 0 || b.offsetHeight > 0) {
+                            viewBtn = b;
+                            break;
+                        }
+                    }
+                }
+            }
+            if (viewBtn) {
+                viewBtn.click();
+                await new Promise(r => setTimeout(r, 500));
+                const items = Array.from(document.querySelectorAll('li, button, div[role="menuitem"], a, span'));
+                let target = items.find(el => {
+                    const t = (el.innerText || el.textContent || '').toLowerCase();
+                    return t.includes('lado a lado: orador') || t.includes('side-by-side: speaker') ||
+                           (t.includes('lado a lado') && t.includes('orador')) ||
+                           (t.includes('side-by-side') && t.includes('speaker'));
+                });
+                if (!target) {
+                    target = items.find(el => {
+                        const t = (el.innerText || el.textContent || '').toLowerCase();
+                        return (t === 'orador' || t === 'speaker' || t.includes('vista del orador') || t.includes('speaker view')) && !t.includes('galería');
+                    });
+                }
+                if (target) {
+                    target.click();
+                } else {
+                    viewBtn.click();
+                }
+                const fit = items.find(el => {
+                    const t = (el.innerText || el.textContent || '').toLowerCase();
+                    return t.includes('ajustar a la ventana') || t.includes('fit to window');
+                });
+                if (fit) {
+                    try { fit.click(); } catch(e) {}
+                }
+            }
+        }""")
+    except Exception:
+        pass
+
+    try:
+        # 5. Deduplicar pestañas de Zoom
+        if context:
+            all_pages = list(context.pages)
+            for p_extra in all_pages:
+                if p_extra != page and "zoom.us" in p_extra.url.lower():
+                    await p_extra.close()
+                    print("\n[Recorder Zoom] 🚪 Pestaña duplicada de Zoom cerrada limpiamente.")
+    except Exception:
+        pass
+
 async def grabar_mentoria_zoom_o_voz(
 
     url_objetivo: str,
@@ -1993,6 +2205,8 @@ async def grabar_mentoria_zoom_o_voz(
 
                         await page.bring_to_front()
 
+                        await optimizar_entorno_zoom(page, context)
+
                     except Exception:
 
                         pass
@@ -2119,7 +2333,17 @@ async def grabar_mentoria_zoom_o_voz(
 
                         break
 
-                    if transcurrido > 30 and transcurrido % 10 == 0:
+                    if transcurrido > 10 and transcurrido % 10 == 0:
+
+                        if es_zoom:
+
+                            try:
+
+                                await optimizar_entorno_zoom(page, context)
+
+                            except Exception:
+
+                                pass
 
                         try:
 

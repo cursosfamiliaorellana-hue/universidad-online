@@ -47,8 +47,8 @@ El **Bot Universidad Online** es una suite empresarial de automatización desate
 
 ## 3. CATÁLOGO DE ARCHIVOS Y RESPONSABILIDADES
 - **`main.py`:** Orquestador principal del sistema. Sincroniza calendarios con Google Calendar Webhook, monitorea horarios, acciona grabaciones de Hotmart, gestiona el Semáforo de Red/CPU y la cola de post-procesamiento.
-- **`recorder.py`:** Motor de captura de video y audio. Se conecta vía Playwright CDP al puerto 9222 de Chrome, localiza la clase en Hotmart, maneja Zoom Web como 'David Herbas', graba con FFmpeg en WebM crudo y remuxea a MP4 con salvaguarda anti-destrucción.
-- **`vigia_mentorias.py`:** Agente de escucha continua conectado a la API de Telegram (Telethon). Detecta inicio de llamadas de voz / videochats en canales monitoreados y dispara capturas automáticas.
+- **`recorder.py`:** Motor de captura de video y audio. Se conecta vía Playwright CDP al puerto 9222 de Chrome, localiza la clase en Hotmart, maneja Zoom Web con optimización visual continua 'Lado a lado: orador' (presentación grande), auto-conexión de audio tras sala de espera, supresión de banners y deduplicación de pestañas. Graba con FFmpeg y remuxea con salvaguarda anti-destrucción.
+- **`vigia_mentorias.py`:** Agente de escucha continua conectado a la API de Telegram (Telethon). Detecta enlaces de Zoom con Fallback Autónomo inmediato sin dependencia de IA (Gemini 3.8/3.5 Flash) e inicio de llamadas de voz / videochats en canales monitoreados.
 - **`dashboard_web.py`:** Servidor web Flask (puerto 8000) con interfaz responsiva, control de clases, borrado granular (local vs nube), modales de programación manual y 4 consolas virtuales en vivo.
 - **`error_buffer.py`:** Módulo offline-first para registro atómico de fallos en `registro_errores.json` e hilo de sincronización cada 5 minutos con la laptop Dell.
 - **`database.py`:** Capa de abstracción SQLite con funciones para consultas, creación de tablas, bloqueo de concurrencia y actualización de estados.
@@ -57,8 +57,8 @@ El **Bot Universidad Online** es una suite empresarial de automatización desate
 - **`route_builder.py`:** Generador del tablero interactivo de rutas de aprendizaje pedagógicas y sincronizador con Netlify y GitHub Pages.
 - **`scraper.py`:** Extractor inteligente de lecciones y enlaces directamente del HTML de la membresía de Hotmart.
 - **`calendar_sync.py`:** Cliente HTTP para sincronización con el Webhook de Google Apps Script.
-- **`sentinela_auditor.py`:** Centinela y Auditor Proactivo 24 Horas ejecutándose en la Laptop Dell (puerto 5005). Vigila omisiones de horarios, caídas de procesos, reanima el orquestador vía API y administra las reglas de inmunidad permanente.
-- **`registro_inmunidad.json`:** Matriz de conocimiento acumulado que documenta las curas estructurales definitivas (INM-001 a INM-006) para garantizar que los errores resueltos nunca se repitan.
+- **`sentinela_auditor.py`:** Centinela y Auditor Proactivo 24 Horas ejecutándose en la Laptop Dell (puerto 5005). Vigila omisiones de horarios, caídas de procesos, protege grabaciones en vivo, audita logs de Telegram por enlaces Zoom omitidos, reanima el orquestador vía API y administra las reglas de inmunidad permanente.
+- **`registro_inmunidad.json`:** Matriz de conocimiento acumulado que documenta las curas estructurales definitivas (INM-001 a INM-008) para garantizar que los errores resueltos nunca se repitan.
 
 ---
 
@@ -119,15 +119,15 @@ DIRECTIVAS ARQUITECTÓNICAS CRÍTICAS:
 3. MÓDULOS OBLIGATORIOS QUE DEBES RECREAR:
    a) 'error_buffer.py': Sistema de buffer de errores Offline-First en 'registro_errores.json'.
    b) 'sentinela_auditor.py': Centinela y Auditor Proactivo 24 Horas en Dell (puerto 5005) con bucle de auditoría
-      integral de horarios, salud del orquestador y gestión de 'registro_inmunidad.json'.
-   c) 'registro_inmunidad.json': Matriz de reglas de inmunidad permanente (INM-001 a INM-006).
+      integral de horarios, salud del orquestador, protección estricta de grabaciones en vivo, vigilancia de Telegram y gestión de inmunidades.
+   c) 'registro_inmunidad.json': Matriz de reglas de inmunidad permanente (INM-001 a INM-008).
    d) 'database.py': Gestión completa de SQLite ('clases.db') con tabla 'clases_grabadas'.
    e) 'main.py': Orquestador concurrente con detección de horarios (-300s entrada anticipada),
       margen dinámico, semáforo de Red/CPU, latido continuo y cola asíncrona de post-procesamiento.
    f) 'recorder.py': Motor Playwright CDP puerto 9222 con buscador adaptativo (Score > 15),
-      aislamiento de pestañas, modo francotirador, play ante pausas y remuxing seguro.
+      aislamiento de pestañas, modo francotirador, play ante pausas, optimización visual Zoom ('Lado a lado: orador' / presentación grande), auto-conexión de audio y remuxing seguro.
    g) 'vigia_mentorias.py': Monitoreo invisible con Telethon en segundo plano para llamadas de voz
-      y videochats en canales de Telegram.
+      y videochats en canales de Telegram, con Fallback Autónomo inmediato para Zoom sin dependencia obligatoria de IA (Gemini 3.8/3.5 Flash).
    h) 'telegram_uploader.py': Subida asíncrona de videos a Telegram con división y portadas.
    i) 'notebooklm_bot.py': Automatización de Google NotebookLM para audios de estudio.
    j) 'route_builder.py': Generador del tablero LMS interactivo y publicador a GitHub Pages.

@@ -2694,8 +2694,19 @@ def api_admin_ejecutar():
         cmd = data.get("cmd", "")
         if not cmd:
             return jsonify({"error": "Comando vacío"}), 400
-        r = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, timeout=30)
+        r = subprocess.run(cmd, shell=True, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, timeout=60)
         return jsonify({"output": r.stdout, "returncode": r.returncode})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/zoom/optimizar_ahora", methods=["POST", "GET"])
+def api_zoom_optimizar_ahora():
+    try:
+        import asyncio
+        import ejecutar_optimizacion_zoom_ahora
+        res = asyncio.run(ejecutar_optimizacion_zoom_ahora.optimizar_zoom_ahora())
+        return jsonify(res)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -2795,7 +2806,7 @@ if __name__ == "__main__":
     try:
         with open("flask_live.txt", "a") as f:
             f.write("Iniciando servidor Flask...\n")
-        app.run(host='0.0.0.0', port=8000, debug=False, use_reloader=False)
+        app.run(host='0.0.0.0', port=8000, debug=False, use_reloader=False, threaded=True)
     except Exception as e:
         with open("flask_live.txt", "a") as f:
             f.write(f"ERROR FATAL: {str(e)}\n")

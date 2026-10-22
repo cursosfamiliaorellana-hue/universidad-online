@@ -196,15 +196,45 @@ def auditar_salud_integral():
 
     # 2. Comprobar Horarios de Clases y Detección de Omisiones
     db_path = os.path.join(BASE_DIR, "clases.db")
+    hb_path = os.path.join(BASE_DIR, "heartbeat_orquestador.json")
+    orquestador_grabando = False
+    if os.path.exists(hb_path):
+        try:
+            with open(hb_path, "r", encoding="utf-8") as f_hb:
+                hb_data = json.load(f_hb)
+                if hb_data.get("estado") == "GRABANDO":
+                    orquestador_grabando = True
+        except Exception:
+            pass
+
+    # Escudo adicional: si cualquier archivo de video en grabaciones fue modificado en los últimos 15 min,
+    # el sistema ESTÁ GRABANDO activamente y NUNCA debe ser reiniciado ni perturbado.
+    if not orquestador_grabando:
+        grab_dir = os.path.join(BASE_DIR, "grabaciones")
+        if os.path.exists(grab_dir):
+            try:
+                for root, _, files in os.walk(grab_dir):
+                    for file in files:
+                        if file.lower().endswith((".mp4", ".webm")):
+                            fpath = os.path.join(root, file)
+                            if (ahora_ts - os.path.getmtime(fpath)) < 900:
+                                orquestador_grabando = True
+                                break
+                    if orquestador_grabando:
+                        break
+            except Exception:
+                pass
+
     if os.path.exists(db_path):
         try:
             import sqlite3
             import glob
+            import re
             conn = sqlite3.connect(db_path, timeout=5)
             conn.row_factory = sqlite3.Row
             c = conn.cursor()
 
-            c.execute("SELECT id_clase, titulo_original, fecha_grabacion, estado, duracion_min, regrabacion_activa, url_hotmart FROM clases_grabadas WHERE estado IN ('PENDIENTE', 'ERROR', 'GRABANDO')")
+            c.execute("SELECT id_clase, titulo_original, fecha_grabacion, estado, duracion_min, regrabacion_activa, url_hotmart, ruta_archivo FROM clases_grabadas WHERE estado IN ('PENDIENTE', 'ERROR', 'GRABANDO')")
             filas = [dict(r) for r in c.fetchall()]
             conn.close()
 
@@ -217,6 +247,11 @@ def auditar_salud_integral():
                 fecha_iso = fila.get("fecha_grabacion")
                 estado = fila.get("estado", "")
                 duracion_min = int(fila.get("duracion_min") or 60)
+                ruta_arch = fila.get("ruta_archivo") or ""
+
+                # Si la clase está activamente grabando, protegerla y no intervenir
+                if estado == "GRABANDO":
+                    continue
 
                 if not fecha_iso or "T" not in fecha_iso:
                     continue
@@ -233,11 +268,20 @@ def auditar_salud_integral():
                 # Ventana crítica de la clase: desde 4 minutos antes hasta terminada la clase
                 en_ventana_critica = (diff_seg <= 240 and diff_seg >= -(duracion_min * 60))
 
-                if en_ventana_critica:
-                    slug = id_c.replace(" ", "_")
-                    grab_dir = os.path.join(BASE_DIR, "grabaciones")
-                    archivos = glob.glob(os.path.join(grab_dir, "**", f"*{slug}*.*"), recursive=True) if os.path.exists(grab_dir) else []
-                    archivos_reales = [f for f in archivos if os.path.isfile(f) and f.lower().endswith((".webm", ".mp4")) and os.path.getsize(f) > 512 * 1024]
+                if en_ventana_critica and not orquestador_grabando:
+                    slug_id = re.sub(r'[^a-zA-Z0-9]+', '_', id_c.lower()).strip('_')
+                    slug_tit = re.sub(r'[^a-zA-Z0-9]+', '_', titulo.lower()).strip('_')
+                    archivos_reales = []
+                    if ruta_arch and os.path.isfile(ruta_arch) and os.path.getsize(ruta_arch) > 512 * 1024:
+                        archivos_reales.append(ruta_arch)
+                    else:
+                        grab_dir = os.path.join(BASE_DIR, "grabaciones")
+                        if os.path.exists(grab_dir):
+                            for patron in [f"*{slug_id}*.*", f"*{slug_tit}*.*"]:
+                                archivos = glob.glob(os.path.join(grab_dir, "**", patron), recursive=True)
+                                for f in archivos:
+                                    if os.path.isfile(f) and f.lower().endswith((".webm", ".mp4")) and os.path.getsize(f) > 512 * 1024:
+                                        archivos_reales.append(f)
 
                     # Si el estado es PENDIENTE o ERROR y NO hay archivos reales
                     if estado in ("PENDIENTE", "ERROR") and not archivos_reales:
@@ -256,12 +300,13 @@ def auditar_salud_integral():
                             except Exception:
                                 pass
 
-                            # 2. Despertar al orquestador vía API
-                            try:
-                                import requests
-                                requests.post("http://192.168.100.229:8000/api/orquestador/iniciar", timeout=5)
-                            except Exception:
-                                pass
+                            # 2. Despertar al orquestador vía API sólo si no está grabando otra cosa
+                            if not orquestador_grabando:
+                                try:
+                                    import requests
+                                    requests.post("http://192.168.100.229:8000/api/orquestador/iniciar", timeout=5)
+                                except Exception:
+                                    pass
 
                             # 3. Registrar en registro_errores.json para visibilidad en Consola 4 del panel web
                             try:
@@ -273,6 +318,43 @@ def auditar_salud_integral():
                                 )
                             except Exception:
                                 pass
+        except Exception:
+            pass
+
+    # 3. Auditoría Activa de Enlaces Zoom en Telegram (Logs Vigía)
+    vigia_log_path = os.path.join(BASE_DIR, "logs_vigia.txt")
+    if os.path.exists(vigia_log_path) and os.path.exists(db_path):
+        try:
+            import re
+            with open(vigia_log_path, "r", encoding="utf-8", errors="replace") as f_vl:
+                ultimas_lineas = f_vl.readlines()[-80:]
+            texto_reciente = "".join(ultimas_lineas)
+            zoom_matches = re.findall(r'https?://[a-zA-Z0-9.-]*zoom\.us/[a-zA-Z0-9_?&=/.-]+', texto_reciente)
+            for z_url in set(zoom_matches):
+                m_zid = re.search(r'/(?:j|my|wc/join)/([0-9]{8,12})', z_url)
+                zid = m_zid.group(1) if m_zid else None
+                if zid:
+                    conn = sqlite3.connect(db_path, timeout=5)
+                    c = conn.cursor()
+                    c.execute("SELECT COUNT(*) FROM clases_grabadas WHERE url_hotmart LIKE ? OR id_clase LIKE ?", (f"%{zid}%", f"%{zid}%"))
+                    existe = c.fetchone()[0] > 0
+                    conn.close()
+                    if not existe:
+                        log_sentinela(f"🚨 [Vigilancia Telegram] Enlace Zoom {zid} detectado en chat pero no agendado en BD.")
+                        log_sentinela(f"🛠️ [Auto-Sanación] Agendando mentoría Zoom de rescate vía API...")
+                        try:
+                            import requests
+                            requests.post(
+                                "http://192.168.100.229:8000/api/programar_mentoria",
+                                json={
+                                    "url": z_url,
+                                    "titulo": f"Mentoría Zoom Detectada ({zid})",
+                                    "duracion": 120
+                                },
+                                timeout=10
+                            )
+                        except Exception as e_prog:
+                            log_sentinela(f"Aviso agendando Zoom de rescate: {e_prog}")
         except Exception:
             pass
 

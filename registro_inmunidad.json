@@ -68,5 +68,26 @@
     "solucion_definitiva": "En vigia_mentorias.py se implementó Fallback Autónomo que agenda reuniones Zoom inmediatamente sin dependencia obligatoria de IA, se difirió el cache a pos-registro, se actualizaron modelos Gemini a 3.8/3.5 Flash, y se definieron extraer_id_sala_zoom y titulo_limpio en recorder.py.",
     "estado": "INMUNIZADO_PERMANENTE",
     "fecha_resolucion": "2026-10-22"
+  },
+  {
+    "id": "INM-008",
+    "titulo": "Optimización Visual de Zoom (Lado a Lado: Orador), Conexión Post-Sala de Espera y Supresión de Banners",
+    "modulo": "recorder.py / sentinela_auditor.py",
+    "sintoma": "1) En grabaciones de Zoom la presentación no quedaba en grande y el orador no se posicionaba a un costado/arriba. 2) Tras la admisión tardía del bot en la sala de espera (1-2 min), el modal de 'Audio por computadora' quedaba sin conectar o tapando la pantalla. 3) Banners flotantes de aceleración por hardware o cookies obstruían el video. 4) Pestañas duplicadas de Zoom en Chrome. 5) Reinicio espurio del Orquestador por parte del Centinela al no encontrar archivos de mentorías en subcarpeta.",
+    "causa_raiz": "1) La interacción con Zoom solo se ejecutaba una vez al inicio antes de que el anfitrión admitiera al participante. 2) Falta de selectores de cambio de vista ('Lado a lado: orador' / 'Side-by-side: Speaker'). 3) Inexistencia de supresión de banners de notificación en el cliente web de Zoom. 4) Centinela Auditor buscaba grabaciones solo en la raíz de grabaciones/ sin contemplar la subcarpeta grabaciones/mentorias/, y no chequeaba el estado activo 'GRABANDO' del heartbeat.",
+    "solucion_definitiva": "En recorder.py se creó optimizar_entorno_zoom() ejecutado de forma continua cada 10 segundos durante la grabación, conectando audio automáticamente al ser admitido, inyectando CSS anti-banners molestos, seleccionando 'Lado a lado: orador' con ajuste a ventana, manteniendo Mic/Cam en OFF y cerrando pestañas duplicadas. En sentinela_auditor.py se blindó la protección de grabaciones activas, se expandió la búsqueda de archivos a grabaciones/mentorias/ y se agregó vigilancia reactiva de enlaces Zoom en logs de Telegram.",
+    "estado": "INMUNIZADO_PERMANENTE",
+    "fecha_resolucion": "2026-10-22"
+  },
+  {
+    "id": "INM-009",
+    "titulo": "Protección Estricta del Micrófono Silenciado en Zoom, Descarte del Modal 'Alerta de Reunión' y Escudo Temporal Anti-Reinicios",
+    "modulo": "recorder.py / sentinela_auditor.py / dashboard_web.py",
+    "sintoma": "1) En Zoom Web en español el micrófono decía 'Cancelar silenciar' y el grabador intentaba mutearlo provocando el modal 'Alerta de reunión: El anfitrión no permite que los participantes reactiven su audio ellos mismos' que tapaba la pantalla. 2) Fallas de DOMException al seleccionar la vista 'Lado a lado: orador' por uso de pseudo-selectores no estándar (:has-text). 3) Reinicios espurios del orquestador provocados por el Centinela debido a una fila huérfana duplicada en clases.db.",
+    "causa_raiz": "1) La condición anterior 'txt.includes(silenciar) && !txt.includes(reactivar)' evaluaba True ante 'cancelar silenciar'. 2) document.querySelector('button:has-text(...)') no es válido en el DOM estándar. 3) Doble registro en clases.db para la misma sesión (uno PENDIENTE a las 10:16 y otro a las 11:21) activando el reintento del centinela.",
+    "solucion_definitiva": "1) Implementación de regla estaSilenciado con guardia permanente: jamás tocar botones con 'reactivar', 'cancelar silenciar' o 'unmute'. 2) Manejador continuo en recorder.py y ejecutar_optimizacion_zoom_ahora.py que descarta automáticamente cualquier modal de alerta pulsando 'Aceptar'. 3) Selectores CSS nativos y búsqueda por texto sobre array de botones para 'Vista' -> 'Lado a lado: orador' con ajuste de ventana. 4) Marcado de la fila huérfana en clases.db como COMPLETADA y adición de un escudo de archivo activo en sentinela_auditor.py que bloquea cualquier reinicio si existe un video grabado en los últimos 15 minutos.",
+    "estado": "INMUNIZADO_PERMANENTE",
+    "fecha_resolucion": "2026-10-22"
   }
 ]
+

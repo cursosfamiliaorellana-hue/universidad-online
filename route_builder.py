@@ -342,8 +342,8 @@ def publicar_en_github_pages() -> bool:
 
     ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     comandos = [
-        "git add index.html app_web data.json database.json Mis_Rutas_80_20_UniversidadOnline.html sw.js manifest.json icon-192.png icon-512.png",
-        f'git commit -m "Auto-update App Web LMS [{ts}]"',
+        "git add index.html app_web data.json database.json Mis_Rutas_80_20_UniversidadOnline.html sw.js manifest.json icon-192.png icon-512.png recorder.py vigia_mentorias.py sentinela_auditor.py registro_inmunidad.json dashboard_web.py main.py MANUAL_USUARIO.md SUPER_PROMPT_RESTAURACION_TOTAL_DISASTER_RECOVERY.md ejecutar_optimizacion_zoom_ahora.py",
+        f'git commit -m "Auto-update App Web LMS & Core Scripts [{ts}]"',
         "git push origin main",
     ]
     exito_total = True
