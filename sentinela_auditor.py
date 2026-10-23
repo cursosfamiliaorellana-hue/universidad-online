@@ -143,12 +143,13 @@ class HandlerCentinela(BaseHTTPRequestHandler):
 
 
 def bucle_vigia_disco():
-    """Vigila cada 20 segundos si aparecen errores en estado 'Pendiente' en Z:\registro_errores.json"""
+    """Vigila cada 20 segundos si aparecen errores no resueltos en Z:\registro_errores.json"""
     while True:
         try:
             if os.path.exists(REGISTRO_ERRORES_PATH):
                 import error_buffer
-                pendientes = error_buffer.obtener_errores(filtro_estado="Pendiente", max_items=20)
+                todos = error_buffer.obtener_errores(max_items=50)
+                pendientes = [e for e in todos if e.get("estado") in ("Pendiente", "Enviado")]
                 if pendientes:
                     log_sentinela(f"🔔 Detectados {len(pendientes)} errores pendientes en disco. Iniciando auto-sanación...")
                     ids_resueltos = []

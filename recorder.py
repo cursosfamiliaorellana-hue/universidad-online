@@ -587,6 +587,7 @@ async def preparar_reproductor_hotmart(
         contexts = browser.contexts
 
         # 1. Buscar pestaña base de Hotmart (omitiendo pestañas de otras clases activas)
+        HOTMART_CLUB_URL = "https://hotmart.com/es/club/suscripcionuniversidadonline/products/7048143"
 
         base_page = None
 
@@ -610,27 +611,23 @@ async def preparar_reproductor_hotmart(
 
                 break
 
-        if not base_page:
+        if not base_page or "hotmart" not in (base_page.url or "").lower():
 
+            # Buscar cualquier pestaña que contenga hotmart
             for page in contexts[0].pages:
+                if "hotmart" in (page.url or "").lower():
+                    base_page = page
+                    break
 
+            # Si ninguna pestaña contiene Hotmart, abrir una dedicada y navegar al Club
+            if not base_page or "hotmart" not in (base_page.url or "").lower():
+                print(f"[Recorder] 🌐 No hay pestaña de Hotmart abierta en Chrome. Abriendo Hotmart Club...")
                 try:
-
-                    page_id = await page.evaluate("() => window.__clase_id")
-
-                    if not page_id:
-
-                        base_page = page
-
-                        break
-
-                except Exception:
-
-                    pass
-
-            if not base_page:
-
-                base_page = contexts[0].pages[0]
+                    base_page = await contexts[0].new_page()
+                    await base_page.goto(HOTMART_CLUB_URL, wait_until="domcontentloaded", timeout=45000)
+                    await asyncio.sleep(4)
+                except Exception as e_nav_base:
+                    print(f"[Recorder] Aviso al abrir Hotmart Club: {e_nav_base}")
 
         url_destino = url_clase
         es_url_especifica = bool(url_destino and any(kw in url_destino.lower() for kw in ["/lesson/", "/content/", "/live/"]))
@@ -638,11 +635,15 @@ async def preparar_reproductor_hotmart(
         if (not url_destino or not es_url_especifica) and titulo_clase:
             print(f"\n🔍 [Buscador Adaptativo Hotmart] Analizando lección para: '{titulo_clase}'...")
             candidatos_disponibles = await buscar_candidatos_en_hotmart(base_page, titulo_clase)
-            if not candidatos_disponibles:
+            if not candidatos_disponibles and base_page:
                 print(f"[Buscador Adaptativo Hotmart] No detectado en vista actual. Recargando Hotmart...")
                 try:
-                    await base_page.reload(wait_until="domcontentloaded", timeout=20000)
-                    await asyncio.sleep(2.5)
+                    if any(kw in (base_page.url or "").lower() for kw in ["/content/", "/lesson/"]):
+                        print(f"[Buscador Adaptativo Hotmart] Retornando al catálogo de módulos de Hotmart Club...")
+                        await base_page.goto(HOTMART_CLUB_URL, wait_until="domcontentloaded", timeout=30000)
+                    else:
+                        await base_page.reload(wait_until="domcontentloaded", timeout=20000)
+                    await asyncio.sleep(3.5)
                     candidatos_disponibles = await buscar_candidatos_en_hotmart(base_page, titulo_clase)
                 except Exception as e_rel:
                     print(f"[Buscador Adaptativo Hotmart] Aviso en recarga: {e_rel}")
@@ -665,6 +666,8 @@ async def preparar_reproductor_hotmart(
                     error_buffer.registrar_error("orquestador", f"CRÍTICO: No se localizó lección en vivo para '{titulo_clase}' en Hotmart Club. Título en plataforma difiere o aún no fue publicada.", "Pendiente")
                 except Exception:
                     pass
+                if not url_destino:
+                    url_destino = HOTMART_CLUB_URL
 
         # 2. AISLAMIENTO ESTRICTO DE PESTAÑAS (MÁXIMO UNA pestaña por clase)
 
